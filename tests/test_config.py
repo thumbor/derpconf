@@ -35,6 +35,7 @@ def isolated_config(monkeypatch):
     monkeypatch.setattr(Config, 'class_aliases', defaultdict(list))
     monkeypatch.setattr(Config, 'class_aliased_items', {})
     monkeypatch.setattr(Config, '_allow_environment_variables', False)
+    monkeypatch.setattr(Config, '_environment_variables_prefix', '')
 
 
 class TestLoading:
@@ -235,6 +236,29 @@ class TestEnvironmentVariables:
 
     def test_override_value_from_file(self, monkeypatch):
         config = Config.load(fix('sample.conf'))
+        Config.allow_environment_variables()
+        monkeypatch.setenv('FOO', 'baz')
+
+        assert config.FOO == 'baz'
+
+    def test_prefix_is_prepended_to_name(self, monkeypatch):
+        monkeypatch.setenv('MYPREFIX_SOME_CONFIGURATION', 'test value')
+        config = Config()
+
+        Config.allow_environment_variables(prefix='MYPREFIX_')
+
+        assert config.SOME_CONFIGURATION == 'test value'
+
+    def test_unprefixed_name_ignored_with_prefix(self, monkeypatch):
+        config = Config.load(fix('sample.conf'))
+        Config.allow_environment_variables(prefix='MYPREFIX_')
+        monkeypatch.setenv('FOO', 'baz')
+
+        assert config.FOO == 'bar'
+
+    def test_call_without_prefix_resets_it(self, monkeypatch):
+        config = Config.load(fix('sample.conf'))
+        Config.allow_environment_variables(prefix='MYPREFIX_')
         Config.allow_environment_variables()
         monkeypatch.setenv('FOO', 'baz')
 

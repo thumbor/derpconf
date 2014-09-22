@@ -62,8 +62,8 @@ Reading a setting that has neither a value nor a default raises
 
 When you read a setting, derpconf checks, in order:
 
-1. an environment variable with the same name, if you called
-   `Config.allow_environment_variables()`;
+1. an environment variable with the same name, after the prefix if you gave
+   one, if you called `Config.allow_environment_variables()`;
 2. the value assigned in the loaded configuration file;
 3. the `defaults` dict passed to `Config.load`;
 4. the default declared with `Config.define`.
@@ -126,6 +126,22 @@ value is always a string: `conf.PORT` above is `'9100'`, not `9100`, and
 `DEBUG=False` gives the truthy string `'False'`, so convert values where you
 use them. The switch applies to every `Config` in the process, and there is
 no public call to turn it off again.
+
+To keep your settings apart from variables that other programs read, pass a
+prefix:
+
+```python
+Config.allow_environment_variables(prefix='MYAPP_')
+```
+
+```
+$ MYAPP_PORT=9100 python app.py
+```
+
+Now `MYAPP_PORT` overrides `PORT`, and a plain `PORT` in the environment is
+ignored. Like the switch, the prefix applies to every `Config` in the process.
+Calling `Config.allow_environment_variables()` again without a prefix drops
+it, and plain names override settings again.
 
 ## Reloading
 

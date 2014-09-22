@@ -39,8 +39,8 @@ sample file from the registered defaults. The whole library lives in
 - Fixtures live in `tests/fixtures/`. `conf.d/` covers directory loading, and
   its `.bak` file checks that only `*.conf` files are executed.
 - `Config` keeps defaults, groups, aliases and the environment variable flag
-  in class attributes. The autouse `isolated_config` fixture gives each test
-  fresh ones, so tests may call `Config.define`, `Config.alias` and
+  and prefix in class attributes. The autouse `isolated_config` fixture gives
+  each test fresh ones, so tests may call `Config.define`, `Config.alias` and
   `Config.allow_environment_variables()` freely. Set environment variables
   with `monkeypatch.setenv` so they are removed afterwards.
 - The suite used to run on pyVows. Older branches and open pull requests that
@@ -109,9 +109,9 @@ Makefile                 ← setup, test, lint
   overriding earlier ones. `config_file` ends up pointing at the last file,
   so `reload()` after a directory load re-executes only that file.
 - Reading a setting checks, in order: the environment (only after
-  `allow_environment_variables()`), values from the loaded files, the
-  `defaults` passed to `load`, the default from `Config.define`, and finally
-  raises `AttributeError`.
+  `allow_environment_variables()`, with its `prefix` prepended to the
+  name), values from the loaded files, the `defaults` passed to `load`, the
+  default from `Config.define`, and finally raises `AttributeError`.
 - `Config.alias(old_name, new_name)` makes `old_name` a deprecated alias:
   reading or setting it logs a warning and redirects to `new_name`. Aliases
   of aliases resolve to the final name.
@@ -143,11 +143,12 @@ Makefile                 ← setup, test, lint
   `verify_config` execute them with the privileges of the process. Any change
   that widens which files get executed (new extensions, recursive directory
   walks, extra lookup paths) is a security change and needs a test.
-- Once `allow_environment_variables()` is called, it applies to every
-  `Config` in the process. `__getattribute__` checks the environment for
-  every attribute name except `_allow_environment_variables`, including
-  methods such as `get` and `reload` and internals such as `defaults`, and
-  the values it returns are always strings.
+- Once `allow_environment_variables()` is called, it and its `prefix` apply
+  to every `Config` in the process. `__getattribute__` checks the
+  environment for every attribute name except `_allow_environment_variables`
+  and `_environment_variables_prefix`, including methods such as `get` and
+  `reload` and internals such as `defaults`, and the values it returns are
+  always strings.
 - `verify_config` prints the default used for each missing key, and
   `generate_config` prints every default. Never put real secrets in
   `Config.define` defaults, fixtures or examples.
