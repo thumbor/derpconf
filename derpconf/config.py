@@ -8,6 +8,7 @@
 # http://www.opensource.org/licenses/mit-license
 # Copyright (c) 2012 globo.com timehome@corp.globo.com
 
+import json
 import logging
 import os
 import sys
@@ -213,9 +214,41 @@ class Config:
             value = os.environ.get(prefix + name, None)
 
             if value is not None:
-                return value
+                return self.cast_by_default_type(name, value)
 
         return super().__getattribute__(name)
+    
+    def cast_by_default_type(self, name, value):
+        if name in self.__class__.class_defaults:
+            default_type = type(self.__class__.class_defaults[name])
+
+            if default_type == str:
+                return value
+            elif default_type == int:
+                return int(value)
+            elif default_type == float:
+                return float(value)
+            elif default_type == bool:
+                return self.safe_cast_to_bool(value)
+            elif default_type in [list, dict, tuple, set]:
+                return json.loads(value)
+
+        try:
+            return json.loads(value)
+        except:
+            return self.safe_cast_to_bool(value)
+
+    def safe_cast_to_bool(self, value):
+        try:
+            return bool(int(value))
+        except ValueError:
+            if str(value).lower() in ('true', 'yes', 'y', 'on'):
+                return True
+            elif str(value).lower() in ('false', 'no', 'n', 'off'):
+                return False
+            else:
+                return value
+
 
     def __getattr__(self, name):
         if name in self.__dict__:
