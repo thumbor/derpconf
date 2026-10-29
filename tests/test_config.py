@@ -8,6 +8,7 @@
 # http://www.opensource.org/licenses/mit-license
 # Copyright (c) 2012 globo.com timehome@corp.globo.com
 
+import importlib
 from collections import defaultdict
 from os.path import abspath, dirname, join
 
@@ -76,6 +77,19 @@ class TestLoading:
 
         assert config.DEFAULT == 'DEFAULTVALUE'
 
+    def test_defaults_are_not_shared_between_loads(self):
+        Config.load(None).defaults['LEAKED'] = 'value'
+
+        assert not hasattr(Config.load(None), 'LEAKED')
+
+    # six imports importlib.util as a side effect; load must not rely on it.
+    def test_does_not_need_importlib_util(self, monkeypatch):
+        monkeypatch.delattr(importlib, 'util')
+
+        config = Config.load(fix('sample.conf'))
+
+        assert config.FOO == 'bar'
+
 
 class TestLoadingDirectory:
     @pytest.fixture
@@ -109,6 +123,17 @@ class TestSettingAnAlias:
 
     def test_sets_alias(self, config):
         assert config.OTHER_ENGINE == 'x'
+
+    @pytest.mark.filterwarnings('error::DeprecationWarning')
+    def test_logs_deprecation_on_set_and_get(self, caplog):
+        Config.alias('OTHER_ENGINE', 'ENGINE')
+
+        config = Config(OTHER_ENGINE='x')
+
+        assert config.OTHER_ENGINE == 'x'
+        assert caplog.messages == [
+            'Option OTHER_ENGINE is marked as deprecated please use ENGINE instead.',
+        ] * 2
 
 
 class TestSettingAnAliasedKey:

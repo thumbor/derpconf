@@ -84,7 +84,7 @@ tox.ini                  ← stale Python 2 era envlist
 
 ## How loading works
 
-- `Config.load(path, conf_name=None, lookup_paths=[], defaults={})` loads
+- `Config.load(path, conf_name=None, lookup_paths=None, defaults=None)` loads
   `path`. When `path` is `None`, it uses the first entry of `lookup_paths`
   that contains `conf_name`; with neither, it returns a `Config` holding only
   defaults. A path that does not exist raises `ConfigurationError`.

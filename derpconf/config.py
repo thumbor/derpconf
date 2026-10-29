@@ -13,7 +13,7 @@ import os
 import logging
 from collections import defaultdict
 from os.path import join, exists, abspath, dirname, isdir
-import importlib
+from types import ModuleType
 
 import six
 from textwrap import fill
@@ -64,7 +64,10 @@ class Config(object):
         cls._allow_environment_variables = True
 
     @classmethod
-    def load(cls, path, conf_name=None, lookup_paths=[], defaults={}):
+    def load(cls, path, conf_name=None, lookup_paths=None, defaults=None):
+        if defaults is None:
+            defaults = {}
+
         if path is None and conf_name is not None and lookup_paths:
             path = cls.get_conf_file(conf_name, lookup_paths)
 
@@ -94,8 +97,7 @@ class Config(object):
         with open(path) as config_file:
             name = 'configuration'
             code = config_file.read()
-            spec = importlib._bootstrap.ModuleSpec(name, None)
-            module = importlib.util.module_from_spec(spec)
+            module = ModuleType(name)
 
             six.exec_(code, module.__dict__)
 
@@ -119,8 +121,7 @@ class Config(object):
         with open(path) as config_file:
             name = 'configuration'
             code = config_file.read()
-            spec = importlib._bootstrap.ModuleSpec(name, None)
-            module = importlib.util.module_from_spec(spec)
+            module = ModuleType(name)
 
             six.exec_(code, module.__dict__)
 
@@ -188,7 +189,7 @@ class Config(object):
 
     def __setattr__(self, name, value):
         if name in self.__class__.class_aliased_items:
-            logging.warn('Option %s is marked as deprecated please use %s instead.' % (name,
+            logging.warning('Option %s is marked as deprecated please use %s instead.' % (name,
                 self.__class__.class_aliased_items[name]))
             self.__setattr__(self.__class__.class_aliased_items[name], value)
         else:
@@ -211,7 +212,7 @@ class Config(object):
             return self.__dict__[name]
 
         if name in self.__class__.class_aliased_items:
-            logging.warn('Option %s is marked as deprecated please use %s instead.' % (name,
+            logging.warning('Option %s is marked as deprecated please use %s instead.' % (name,
                 self.__class__.class_aliased_items[name]))
 
             return self.__getattr__(self.__class__.class_aliased_items[name])
