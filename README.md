@@ -208,7 +208,7 @@ Called without a path, `verify_config()` takes it from `sys.argv[1]`.
 
 ```
 make setup    # pip install -Ue .[tests], inside a virtualenv
-make test     # pyVows suite with coverage
+make test     # pytest suite with coverage
 ```
 
 CI runs the suite on Python 3.11 to 3.15. See

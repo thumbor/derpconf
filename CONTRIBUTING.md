@@ -37,10 +37,17 @@ Run the suite with:
 make test
 ```
 
-The tests are [pyVows](https://github.com/heynemann/pyvows) contexts in
-`vows/config_vows.py`, with fixtures in `vows/fixtures/`. Read the
-`Vows Results` line for the outcome. The coverage table below it marks files
-under 90% with ✗, but that does not fail the run.
+The tests use [pytest](https://docs.pytest.org/) and live in
+`tests/test_config.py`, with fixtures in `tests/fixtures/`. An autouse fixture
+gives every test fresh `Config` class attributes, so set environment
+variables with `monkeypatch.setenv` and let pytest clean them up. Coverage is
+reported after the run, without a threshold.
+
+The suite used to run on pyVows, and the `vows/` directory is gone. If your
+branch still adds or changes vows in `vows/config_vows.py`, port them to
+`tests/test_config.py` when you rebase: each `should_*` method becomes a
+`test_*` function, its topic becomes the test body or a fixture, and each
+`expect(...)` becomes a plain `assert` or `pytest.raises`.
 
 CI runs the suite on Python 3.11, 3.12, 3.13, 3.14 and 3.15. To try another
 version locally, create a virtualenv with that interpreter and run
@@ -63,7 +70,7 @@ compatible.
 Before opening a pull request:
 
 - Rebase your branch on top of the latest `master`
-- Add or update a vow whenever behavior changes
+- Add or update a test in `tests/test_config.py` whenever behavior changes
 - Run `make test` locally
 - Update `README.md` when you change public behavior
 - Keep the change focused, and leave `derpconf/version.py` alone; the version

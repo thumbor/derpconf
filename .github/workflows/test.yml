@@ -18,8 +18,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install dependencies
         run: |
-          sudo apt-get install -y librtmp-dev libevent-dev
           python -m pip install --upgrade pip
           make setup
-      - name: Test with pyvows
+      - name: Test with pytest
         run: make test

@@ -22,9 +22,6 @@ sample file from the registered defaults. The whole library lives in
 
   Equivalent to: `pip install -Ue .[tests]`
 
-- CI installs `librtmp-dev` and `libevent-dev` with apt before running
-  `make setup`.
-
 ## Running tests
 
 - Run the full suite:
@@ -33,24 +30,24 @@ sample file from the registered defaults. The whole library lives in
   make test
   ```
 
-  Equivalent to:
+  Equivalent to: `pytest --cov=derpconf --cov-report=term-missing`
 
-  ```
-  PYTHONPATH=. pyvows -v --profile --cover --cover-package=derpconf \
-      --cover-threshold=90 vows/
-  ```
-
-- Tests use [pyVows](https://github.com/heynemann/pyvows) (`Vows.batch`,
-  `topic`, `expect`), not pytest. Read the `Vows Results` line for the
-  outcome. The coverage report marks files below 90% with ✗, but the
-  threshold does not fail the run: `config.py` is below it today and
-  `make test` still exits 0.
-- Fixtures live in `vows/fixtures/`. `conf.d/` covers directory loading, and
+- Tests use pytest and live in `tests/test_config.py`; `testpaths` in
+  `pyproject.toml` points pytest at `tests/`, and `pythonpath` makes the
+  working tree win over any derpconf installed in the virtualenv. Coverage is
+  reported but no threshold is enforced.
+- Fixtures live in `tests/fixtures/`. `conf.d/` covers directory loading, and
   its `.bak` file checks that only `*.conf` files are executed.
 - `Config` keeps defaults, groups, aliases and the environment variable flag
-  in class attributes, so that state is shared by every vow. A new vow that
-  calls `Config.define`, `Config.allow_environment_variables()` or sets an
-  environment variable should restore what it changed.
+  in class attributes. The autouse `isolated_config` fixture gives each test
+  fresh ones, so tests may call `Config.define`, `Config.alias` and
+  `Config.allow_environment_variables()` freely. Set environment variables
+  with `monkeypatch.setenv` so they are removed afterwards.
+- The suite used to run on pyVows. Older branches and open pull requests that
+  still touch `vows/config_vows.py` need their vows ported to
+  `tests/test_config.py`: each `should_*` method becomes a test, its topic
+  becomes the test body or a fixture, and each `expect(...)` becomes a plain
+  `assert` or `pytest.raises`.
 - `tox.ini` (py27, py32, py33, pypy) and `make tox` (pythonbrew paths) are
   leftovers from the Python 2 era and CI does not use them. Test each Python
   version with `make setup` and `make test` in its own virtualenv.
@@ -76,8 +73,8 @@ derpconf/
                            generate_config and the sample-text formatters
   version.py             ← __version__, read by setuptools at build time
   __init__.py            ← empty
-vows/
-  config_vows.py         ← pyVows suite
+tests/
+  test_config.py         ← pytest suite
   fixtures/              ← sample.conf, missing.conf, conf.d/
 pyproject.toml           ← package metadata and the `tests` extra
 Makefile                 ← setup, test (and the stale tox target)
@@ -110,7 +107,7 @@ tox.ini                  ← stale Python 2 era envlist
 
 ## Contribution guidelines
 
-- Keep changes focused and add or update a vow whenever behavior changes.
+- Keep changes focused and add or update a test whenever behavior changes.
 - thumbor pins `derpconf>=0.8.4,<1.0.0` and calls `Config.define`,
   `Config.alias`, `Config.load`, `Config.allow_environment_variables`,
   `validates_presence_of` and `generate_config`. Treat their behavior as
@@ -126,7 +123,7 @@ tox.ini                  ← stale Python 2 era envlist
 - Configuration files are Python code. `load`, `reload`, `verify` and
   `verify_config` execute them with the privileges of the process. Any change
   that widens which files get executed (new extensions, recursive directory
-  walks, extra lookup paths) is a security change and needs a vow.
+  walks, extra lookup paths) is a security change and needs a test.
 - Once `allow_environment_variables()` is called, it applies to every
   `Config` in the process. `__getattribute__` checks the environment for
   every attribute name except `_allow_environment_variables`, including

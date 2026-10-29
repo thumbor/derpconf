@@ -328,4 +328,4 @@ if __name__ == '__main__':
     config_sample = Config.get_config_text()
     sys.stdout.write("%s\n" % config_sample)  # or instead of both, just call generate_config()
 
-    verify_config(abspath(join(dirname(__file__), '../vows/fixtures/missing.conf')))
+    verify_config(abspath(join(dirname(__file__), '../tests/fixtures/missing.conf')))
