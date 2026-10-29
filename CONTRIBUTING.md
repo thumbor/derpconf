@@ -17,8 +17,8 @@ that workflow, GitHub's fork documentation is a good place to start:
 - Python 3.11 to 3.15
 - A virtualenv
 
-Create a virtualenv and install derpconf in editable mode with its test
-dependencies:
+Create a virtualenv and install derpconf in editable mode with its test and
+lint dependencies:
 
 ```bash
 python3 -m venv .venv
@@ -26,8 +26,8 @@ python3 -m venv .venv
 make setup
 ```
 
-`make setup` runs `pip install -Ue .[tests]`, which installs the `tests`
-extra declared in `pyproject.toml`.
+`make setup` runs `pip install -Ue .[tests,lint]`, which installs the
+`tests` and `lint` extras declared in `pyproject.toml`.
 
 ## Running Tests
 
@@ -56,9 +56,16 @@ still target Python 2 and CI does not use them.
 
 ## Code Style
 
-No formatter or linter is configured. Match the code around your change:
-`%` string formatting, single-quoted strings, and the license header at the
-top of every new module.
+CI runs flake8, isort and pylint. Run them locally before pushing:
+
+```bash
+make lint
+```
+
+There is no formatter, so match the code around your change: f-strings
+(except in `logging` calls, which take `%s` placeholders and the values as
+arguments), single-quoted strings, and the license header at the top of
+every new module.
 
 thumbor depends on `derpconf>=0.8.4,<1.0.0`, so keep `Config.define`,
 `Config.alias`, `Config.load`, `Config.allow_environment_variables`,
@@ -71,7 +78,7 @@ Before opening a pull request:
 
 - Rebase your branch on top of the latest `master`
 - Add or update a test in `tests/test_config.py` whenever behavior changes
-- Run `make test` locally
+- Run `make test` and `make lint` locally
 - Update `README.md` when you change public behavior
 - Keep the change focused, and leave `derpconf/version.py` alone; the version
   is bumped when a release is cut

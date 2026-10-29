@@ -13,14 +13,14 @@ sample file from the registered defaults. The whole library lives in
 - **Prerequisites:** Python 3.11 to 3.15, the versions listed in the
   `pyproject.toml` classifiers and in the CI matrix. There are no runtime
   dependencies.
-- Install the package in editable mode with the test extras, inside a
-  virtualenv:
+- Install the package in editable mode with the `tests` and `lint` extras,
+  inside a virtualenv:
 
   ```
   make setup
   ```
 
-  Equivalent to: `pip install -Ue .[tests]`
+  Equivalent to: `pip install -Ue .[tests,lint]`
 
 ## Running tests
 
@@ -58,9 +58,21 @@ sample file from the registered defaults. The whole library lives in
 
 ## Code style
 
-- No formatter, linter or type checker is configured. Match the existing
-  code: `%` string formatting, classes that derive from `object`, and
-  single-quoted strings.
+- flake8, isort and pylint use the same rules as libthumbor: `.flake8`,
+  `[tool.isort]` in `pyproject.toml` (black profile, 88 columns) and
+  `.pylintrc`, which only turns off the docstring checks. Run all three
+  with:
+
+  ```
+  make lint
+  ```
+
+  `make flake8`, `make isort-check` and `make pylint` run one at a time.
+  `.github/workflows/lint.yml` runs each as its own job on Python 3.11, with
+  the same triggers as the test workflow.
+- There is no formatter and `make isort-check` only checks. Keep
+  single-quoted strings and write f-strings, except in `logging` calls,
+  which take `%s` placeholders and the values as arguments.
 - Non-empty modules start with the shebang, the `coding: utf-8` line and the
   MIT license header (`# derpconf`, repository URL, license link, copyright).
   Copy it into new modules.
@@ -76,10 +88,13 @@ derpconf/
 tests/
   test_config.py         ← pytest suite
   fixtures/              ← sample.conf, missing.conf, conf.d/
-pyproject.toml           ← package metadata and the `tests` extra
-Makefile                 ← setup, test (and the stale tox target)
+pyproject.toml           ← package metadata, the `tests` and `lint` extras,
+                           isort settings
+Makefile                 ← setup, test, lint (and the stale tox target)
+.flake8                  ← flake8 settings
+.pylintrc                ← pylint settings
 tox.ini                  ← stale Python 2 era envlist
-.github/workflows/       ← unittests matrix
+.github/workflows/       ← unittests matrix and lint jobs
 ```
 
 ## How loading works
@@ -91,6 +106,7 @@ tox.ini                  ← stale Python 2 era envlist
 - A file is executed with the built-in `exec` in a fresh module namespace.
   Every top-level name that equals its own uppercase becomes a setting;
   lowercase names are ignored.
+- Files are read as UTF-8, whatever the locale.
 - A directory loads every `*.conf` file in it in sorted order, later files
   overriding earlier ones. `config_file` ends up pointing at the last file,
   so `reload()` after a directory load re-executes only that file.

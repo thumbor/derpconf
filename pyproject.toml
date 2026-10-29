@@ -31,6 +31,11 @@ tests = [
     "pytest-cov>=7.0.0,<8.0.0",
     "tox>=4.0.0,<5.0.0",
 ]
+lint = [
+    "flake8>=7.3.0,<8.0.0",
+    "isort>=9.0.0,<10.0.0",
+    "pylint>=4.0.8,<5.0.0",
+]
 
 [project.urls]
 Homepage = "https://github.com/thumbor/derpconf"
@@ -45,3 +50,7 @@ version = { attr = "derpconf.version.__version__" }
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+
+[tool.isort]
+profile = "black"
+line_length = 88
