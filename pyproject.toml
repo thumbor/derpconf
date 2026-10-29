@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "derpconf"
+dynamic = ["version"]
+description = "derpconf abstracts loading configuration files for your app"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+authors = [{ name = "globo.com", email = "timehome@corp.globo.com" }]
+keywords = ["configuration"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Natural Language :: English",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
+]
+dependencies = [
+    "six",
+]
+
+[project.optional-dependencies]
+tests = [
+    "gevent",
+    "pyVows",
+    "coverage",
+    "colorama",
+    "tox",
+    "six",
+]
+
+[project.urls]
+Homepage = "https://github.com/thumbor/derpconf"
+
+[tool.setuptools]
+packages = ["derpconf"]
+include-package-data = false
+
+[tool.setuptools.dynamic]
+version = { attr = "derpconf.version.__version__" }

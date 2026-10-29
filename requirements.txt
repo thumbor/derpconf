@@ -1,6 +1,0 @@
-gevent
-pyVows
-coverage
-colorama
-tox
-six
