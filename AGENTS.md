@@ -113,6 +113,11 @@ tox.ini                  ← stale Python 2 era envlist
   `validates_presence_of` and `generate_config`. Treat their behavior as
   public API: a change to the lookup order, the uppercase filter or the sample
   text format changes thumbor too.
+- Declare every dependency in `pyproject.toml` as a `>=X.Y.Z,<N.0.0` range,
+  where `N` is the next major, the same style thumbor uses. derpconf is
+  installed next to thumbor's own dependencies, so never pin an exact
+  version. Without a lockfile, Dependabot only opens a pip pull request when
+  a new release falls outside one of these ranges.
 - There is no release workflow. A maintainer bumps `__version__` in
   `derpconf/version.py` in a `Release X.Y.Z` commit and publishes to PyPI. Do
   not bump the version in feature or fix changes.
