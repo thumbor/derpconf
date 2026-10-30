@@ -51,8 +51,7 @@ branch still adds or changes vows in `vows/config_vows.py`, port them to
 
 CI runs the suite on Python 3.11, 3.12, 3.13, 3.14 and 3.15. To try another
 version locally, create a virtualenv with that interpreter and run
-`make setup` and `make test` in it. Ignore `tox.ini` and `make tox`: they
-still target Python 2 and CI does not use them.
+`make setup` and `make test` in it.
 
 ## Code Style
 
