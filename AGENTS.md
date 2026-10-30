@@ -92,7 +92,7 @@ pyproject.toml           ← package metadata, the `tests` and `lint` extras,
 Makefile                 ← setup, test, lint
 .flake8                  ← flake8 settings
 .pylintrc                ← pylint settings
-.github/workflows/       ← unittests matrix and lint jobs
+.github/workflows/       ← unittests matrix, lint jobs and PyPI release
 ```
 
 ## How loading works
@@ -132,9 +132,13 @@ Makefile                 ← setup, test, lint
   installed next to thumbor's own dependencies, so never pin an exact
   version. Without a lockfile, Dependabot only opens a pip pull request when
   a new release falls outside one of these ranges.
-- There is no release workflow. A maintainer bumps `__version__` in
-  `derpconf/version.py` in a `Release X.Y.Z` commit and publishes to PyPI. Do
-  not bump the version in feature or fix changes.
+- `.github/workflows/release.yml` publishes releases. A maintainer bumps
+  `__version__` in `derpconf/version.py` in a `Release X.Y.Z` commit, merges
+  it into `master` and pushes an `X.Y.Z` tag, without a `v` prefix, at that
+  commit. The workflow builds the sdist and wheel with `uv build`, fails when
+  the tag does not match `__version__`, and uploads both to PyPI with trusted
+  publishing. It also builds, without uploading, on every pull request to
+  `master`. Do not bump the version in feature or fix changes.
 - New work targets `master`.
 
 ## Security considerations

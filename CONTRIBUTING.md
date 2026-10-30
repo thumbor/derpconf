@@ -98,6 +98,36 @@ git rebase derpconf/master
 If the rebase brings in changes, run the test suite again before opening your
 pull request.
 
+## Releasing
+
+Releases are published to PyPI by the `release` GitHub Actions workflow when a
+tag that matches the package version is pushed. To cut a release:
+
+1. Bump `__version__` in `derpconf/version.py` in a `Release X.Y.Z` commit and
+   merge it into `master`.
+2. Tag the merged commit with the same version, without a `v` prefix, and
+   push the tag to `thumbor/derpconf`, not to your fork. With the `derpconf`
+   remote above and the release commit at the tip of `master`:
+
+   ```bash
+   git fetch derpconf
+   git tag 0.8.5 derpconf/master
+   git push derpconf 0.8.5
+   ```
+
+The workflow builds the sdist and wheel, fails if the tag does not match
+`__version__`, and uploads the artifacts to PyPI through the `pypi`
+environment using trusted publishing, which also uploads attestations, so no
+API token is needed.
+
+Publishing depends on settings outside the repository. On PyPI, the project
+needs a trusted publisher for the `thumbor/derpconf` repository, workflow
+`release.yml` and environment `pypi`. In the repository settings, the `pypi`
+environment should require reviewers and allow deployments only from tags
+that match the release pattern, and a tag ruleset should limit who can create
+those tags. Without that, anyone with write access can publish a release by
+pushing a tag at any commit.
+
 ## Reporting Security Issues
 
 Please do not open a public issue for a vulnerability. Report it privately as
