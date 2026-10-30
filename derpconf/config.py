@@ -8,6 +8,7 @@
 # http://www.opensource.org/licenses/mit-license
 # Copyright (c) 2012 globo.com timehome@corp.globo.com
 
+import json
 import logging
 import os
 import sys
@@ -19,6 +20,38 @@ from types import ModuleType
 
 class ConfigurationError(RuntimeError):
     pass
+
+
+JSON_TYPES = {list: list, tuple: list, set: list, dict: dict}
+JSON_KINDS = {
+    list: 'array',
+    tuple: 'array',
+    set: 'array of scalar values',
+    dict: 'object',
+}
+
+
+def parse_environment_value(variable, name, default, value):
+    collection_type = type(default)
+    json_type = JSON_TYPES.get(collection_type)
+
+    if json_type is None:
+        return value
+
+    try:
+        parsed = json.loads(value)
+
+        if isinstance(parsed, json_type):
+            return collection_type(parsed)
+    # set() raises TypeError when the array holds unhashable items.
+    except (TypeError, ValueError):
+        pass
+
+    raise ConfigurationError(
+        f'Environment variable {variable} must be a JSON '
+        f'{JSON_KINDS[collection_type]} because '
+        f'{name} defaults to a {collection_type.__name__}'
+    )
 
 
 class Config:
@@ -213,7 +246,8 @@ class Config:
             value = os.environ.get(prefix + name, None)
 
             if value is not None:
-                return value
+                default = self.__class__.class_defaults.get(name)
+                return parse_environment_value(prefix + name, name, default, value)
 
         return super().__getattribute__(name)
 

@@ -121,11 +121,31 @@ conf = Config.load('/etc/myapp.conf')
 $ PORT=9100 python app.py
 ```
 
-Any environment variable whose name matches a setting now overrides it. The
-value is always a string: `conf.PORT` above is `'9100'`, not `9100`, and
-`DEBUG=False` gives the truthy string `'False'`, so convert values where you
-use them. The switch applies to every `Config` in the process, and there is
-no public call to turn it off again.
+Any environment variable whose name matches a setting now overrides it. Unless
+the setting's default is a collection (see below), the value is a string:
+`conf.PORT` above is `'9100'`, not `9100`, and `DEBUG=False` gives the truthy
+string `'False'`, so convert values where you use them. The switch applies to
+every `Config` in the process, and there is no public call to turn it off
+again.
+
+When the default given to `Config.define` is a list, tuple, set or dict, the
+variable is read as JSON and converted to the type of that default:
+
+```python
+Config.define('ALLOWED_HOSTS', [], 'Hosts the app answers to')
+```
+
+```
+$ ALLOWED_HOSTS='["example.com", "example.org"]' python app.py
+```
+
+`conf.ALLOWED_HOSTS` is then `['example.com', 'example.org']`. A dict default
+takes a JSON object, a set default a JSON array of scalar values (strings,
+numbers, booleans or `null`), and a list or tuple default any JSON array.
+Anything else, such as `example.com,example.org`, raises `ConfigurationError`
+naming the variable as soon as the setting is read,
+`conf.get('ALLOWED_HOSTS')` included. A setting defined with a `None` default,
+or not defined at all, keeps the raw string.
 
 To keep your settings apart from variables that other programs read, pass a
 prefix:
