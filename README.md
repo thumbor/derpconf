@@ -122,10 +122,21 @@ $ PORT=9100 python app.py
 ```
 
 Any environment variable whose name matches a setting now overrides it. The
-value is always a string: `conf.PORT` above is `'9100'`, not `9100`, and
-`DEBUG=False` gives the truthy string `'False'`, so convert values where you
-use them. The switch applies to every `Config` in the process, and there is
-no public call to turn it off again.
+value is converted to the type of the default given to `Config.define`:
+
+| Default type | Accepted values |
+| --- | --- |
+| `int`, `float` | anything `int()` or `float()` accepts |
+| `bool` | `true`, `yes`, `y`, `on`, `1` and `false`, `no`, `n`, `off`, `0`, in any case |
+| `list`, `tuple`, `set` | a JSON array, such as `'["a.com", "b.com"]'` |
+| `dict` | a JSON object |
+
+With `Config.define('PORT', 8888, ...)`, `conf.PORT` above is `9100`, not
+`'9100'`. A value that does not parse raises `ConfigurationError` naming the
+variable, without echoing the value. Settings defined with a `str` or `None`
+default, or any other type, and settings that were never defined keep the raw
+string. The switch applies to every `Config` in the process, and there is no
+public call to turn it off again.
 
 To keep your settings apart from variables that other programs read, pass a
 prefix:

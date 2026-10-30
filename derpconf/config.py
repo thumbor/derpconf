@@ -8,6 +8,7 @@
 # http://www.opensource.org/licenses/mit-license
 # Copyright (c) 2012 globo.com timehome@corp.globo.com
 
+import json
 import logging
 import os
 import sys
@@ -19,6 +20,49 @@ from types import ModuleType
 
 class ConfigurationError(RuntimeError):
     pass
+
+
+TRUE_VALUES = ('true', 'yes', 'y', 'on', '1')
+FALSE_VALUES = ('false', 'no', 'n', 'off', '0')
+
+
+def parse_bool(value):
+    lowered = value.strip().lower()
+
+    if lowered in TRUE_VALUES:
+        return True
+
+    if lowered in FALSE_VALUES:
+        return False
+
+    raise ValueError('not a boolean')
+
+
+def json_parser(target_type):
+    source_type = dict if target_type is dict else list
+
+    def parse(value):
+        parsed = json.loads(value)
+
+        if not isinstance(parsed, source_type):
+            raise ValueError(f'not a JSON {source_type.__name__}')
+
+        return target_type(parsed)
+
+    return parse
+
+
+# Environment values are cast to the type of the default given to
+# Config.define. Any other type, None included, keeps the raw string.
+ENVIRONMENT_PARSERS = {
+    bool: parse_bool,
+    int: int,
+    float: float,
+    list: json_parser(list),
+    tuple: json_parser(tuple),
+    set: json_parser(set),
+    dict: json_parser(dict),
+}
 
 
 class Config:
@@ -213,9 +257,29 @@ class Config:
             value = os.environ.get(prefix + name, None)
 
             if value is not None:
-                return value
+                return type(self).parse_environment_value(name, prefix + name, value)
 
         return super().__getattribute__(name)
+
+    @classmethod
+    def parse_environment_value(cls, name, env_name, value):
+        while name in cls.class_aliased_items:
+            name = cls.class_aliased_items[name]
+
+        default_type = type(cls.class_defaults.get(name))
+        parser = ENVIRONMENT_PARSERS.get(default_type)
+
+        if parser is None:
+            return value
+
+        try:
+            return parser(value)
+        except (ValueError, TypeError):
+            # The value may be a secret, so it is left out of the message.
+            raise ConfigurationError(
+                f'Environment variable {env_name} is not a valid '
+                f'{default_type.__name__} for {name}'
+            ) from None
 
     def __getattr__(self, name):
         if name in self.__dict__:
