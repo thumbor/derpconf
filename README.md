@@ -223,7 +223,7 @@ Called without a path, `verify_config()` takes it from `sys.argv[1]`.
 ## Development
 
 ```
-make setup    # pip install -Ue .[tests,lint], inside a virtualenv
+make setup    # uv sync: .venv with the dev dependency group
 make test     # pytest suite with coverage
 make lint     # flake8, isort and pylint
 ```

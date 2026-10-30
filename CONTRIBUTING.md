@@ -15,19 +15,18 @@ that workflow, GitHub's fork documentation is a good place to start:
 ## Dependencies
 
 - Python 3.11 to 3.15
-- A virtualenv
+- [uv](https://docs.astral.sh/uv/)
 
-Create a virtualenv and install derpconf in editable mode with its test and
-lint dependencies:
+Install derpconf in editable mode with its test and lint dependencies:
 
 ```bash
-python3 -m venv .venv
-. .venv/bin/activate
 make setup
 ```
 
-`make setup` runs `pip install -Ue .[tests,lint]`, which installs the
-`tests` and `lint` extras declared in `pyproject.toml`.
+`make setup` runs `uv sync`, which creates `.venv` and installs the `dev`
+dependency group declared in `pyproject.toml` at the versions pinned in
+`uv.lock`. The other Makefile targets run their tools through `uv run`, so
+there is no virtualenv to activate.
 
 ## Running Tests
 
@@ -50,8 +49,12 @@ branch still adds or changes vows in `vows/config_vows.py`, port them to
 `expect(...)` becomes a plain `assert` or `pytest.raises`.
 
 CI runs the suite on Python 3.11, 3.12, 3.13, 3.14 and 3.15. To try another
-version locally, create a virtualenv with that interpreter and run
-`make setup` and `make test` in it.
+version locally, set `UV_PYTHON`, and `uv sync` recreates `.venv` with that
+interpreter:
+
+```bash
+UV_PYTHON=3.12 make setup test
+```
 
 ## Code Style
 
