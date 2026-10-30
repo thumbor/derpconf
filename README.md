@@ -207,11 +207,12 @@ Called without a path, `verify_config()` takes it from `sys.argv[1]`.
 ## Development
 
 ```
-make setup    # pip install -Ue .[tests], inside a virtualenv
+make setup    # pip install -Ue .[tests,lint], inside a virtualenv
 make test     # pytest suite with coverage
+make lint     # flake8, isort and pylint
 ```
 
-CI runs the suite on Python 3.11 to 3.15. See
+CI runs the suite on Python 3.11 to 3.15 and the linters on Python 3.11. See
 [AGENTS.md](https://github.com/thumbor/derpconf/blob/master/AGENTS.md) for the
 layout of the code and how settings are resolved.
 

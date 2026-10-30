@@ -9,6 +9,9 @@
 # Copyright (c) 2012 globo.com timehome@corp.globo.com
 
 import importlib
+import os
+import subprocess
+import sys
 from collections import defaultdict
 from os.path import abspath, dirname, join
 
@@ -89,6 +92,21 @@ class TestLoading:
         config = Config.load(fix('sample.conf'))
 
         assert config.FOO == 'bar'
+
+    # LC_ALL=C without locale coercion or UTF-8 mode makes open() pick ASCII.
+    def test_reads_file_as_utf8_whatever_the_locale(self, tmp_path):
+        path = tmp_path / 'utf8.conf'
+        path.write_text("FOO = 'a\u00e7\u00e3o'\n", encoding='utf-8')
+        env = dict(os.environ, LC_ALL='C', PYTHONCOERCECLOCALE='0', PYTHONUTF8='0')
+
+        output = subprocess.check_output([
+            sys.executable, '-c',
+            'from derpconf.config import Config; '
+            f'path = {str(path)!r}; '
+            'print(ascii(Config.load(path).FOO), Config.verify(path))',
+        ], cwd=abspath(join(dirname(__file__), '..')), env=env, text=True)
+
+        assert output == "'a\\xe7\\xe3o' []\n"
 
 
 class TestLoadingDirectory:
@@ -189,7 +207,7 @@ class TestItemAccess:
 
     def test_missing_item_raises_key_error(self, config):
         with pytest.raises(KeyError):
-            config['INVALID_KEY']
+            _ = config['INVALID_KEY']
 
 
 def test_get_description():
@@ -257,6 +275,7 @@ def test_get_config_text_formats_tuple_default():
 
     text = Config.get_config_text()
 
+    # pylint: disable=line-too-long
     assert text.split('\n') == [
         '################################# some config ##################################',
         '',
