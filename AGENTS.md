@@ -48,9 +48,8 @@ sample file from the registered defaults. The whole library lives in
   `tests/test_config.py`: each `should_*` method becomes a test, its topic
   becomes the test body or a fixture, and each `expect(...)` becomes a plain
   `assert` or `pytest.raises`.
-- `tox.ini` (py27, py32, py33, pypy) and `make tox` (pythonbrew paths) are
-  leftovers from the Python 2 era and CI does not use them. Test each Python
-  version with `make setup` and `make test` in its own virtualenv.
+- Test each Python version with `make setup` and `make test` in its own
+  virtualenv.
 - CI (`.github/workflows/test.yml`) runs `make setup` and `make test` on
   Python 3.11, 3.12, 3.13, 3.14 and 3.15 on every push and when a pull
   request is opened or reopened. New commits pushed to a pull request from a
@@ -90,10 +89,9 @@ tests/
   fixtures/              ← sample.conf, missing.conf, conf.d/
 pyproject.toml           ← package metadata, the `tests` and `lint` extras,
                            isort settings
-Makefile                 ← setup, test, lint (and the stale tox target)
+Makefile                 ← setup, test, lint
 .flake8                  ← flake8 settings
 .pylintrc                ← pylint settings
-tox.ini                  ← stale Python 2 era envlist
 .github/workflows/       ← unittests matrix and lint jobs
 ```
 

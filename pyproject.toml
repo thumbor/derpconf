@@ -29,7 +29,6 @@ dependencies = []
 tests = [
     "pytest>=9.0.0,<10.0.0",
     "pytest-cov>=7.0.0,<8.0.0",
-    "tox>=4.0.0,<5.0.0",
 ]
 lint = [
     "flake8>=7.3.0,<8.0.0",
