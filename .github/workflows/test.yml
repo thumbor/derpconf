@@ -22,3 +22,16 @@ jobs:
           make setup
       - name: Test with pytest
         run: make test
+  ppc64le:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v4
+        with:
+          platforms: ppc64le
+      - name: Test with pytest on ppc64le
+        run: >-
+          docker run --rm --platform linux/ppc64le
+          -v "$PWD:/src" -w /src python:3.15
+          sh -c 'make setup && make test'
