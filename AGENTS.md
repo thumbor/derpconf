@@ -116,6 +116,11 @@ Makefile                 ← setup, test, lint
   `allow_environment_variables()`, with its `prefix` prepended to the
   name), values from the loaded files, the `defaults` passed to `load`, the
   default from `Config.define`, and finally raises `AttributeError`.
+- An environment value is a string, unless the setting's `Config.define`
+  default is a list, tuple, set or dict: then it is parsed as JSON and
+  converted to that type, and a value that is not a JSON array (an object
+  for a dict, an array of scalar values for a set) raises
+  `ConfigurationError` on read.
 - `Config.alias(old_name, new_name)` makes `old_name` a deprecated alias:
   reading or setting it logs a warning and redirects to `new_name`. Aliases
   of aliases resolve to the final name.
@@ -158,7 +163,7 @@ Makefile                 ← setup, test, lint
   environment for every attribute name except `_allow_environment_variables`
   and `_environment_variables_prefix`, including methods such as `get` and
   `reload` and internals such as `defaults`, and the values it returns are
-  always strings.
+  strings, or parsed JSON for settings with a collection default.
 - `verify_config` prints the default used for each missing key, and
   `generate_config` prints every default. Never put real secrets in
   `Config.define` defaults, fixtures or examples.

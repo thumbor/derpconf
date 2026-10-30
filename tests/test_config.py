@@ -298,6 +298,82 @@ class TestEnvironmentVariables:
 
         assert config.FOO == 'baz'
 
+    @pytest.mark.parametrize('default, expected', [
+        ([], ['a.com', 'b.com', 'b.com']),
+        ((), ('a.com', 'b.com', 'b.com')),
+        (set(), {'a.com', 'b.com'}),
+    ])
+    def test_array_default_type_is_kept(self, monkeypatch, default, expected):
+        Config.define('HOSTS', default, 'test key')
+        Config.allow_environment_variables()
+        monkeypatch.setenv('HOSTS', '["a.com", "b.com", "b.com"]')
+
+        assert Config().HOSTS == expected
+
+    def test_dict_default_reads_json_object(self, monkeypatch):
+        Config.define('HEADERS', {}, 'test key')
+        Config.allow_environment_variables()
+        monkeypatch.setenv('HEADERS', '{"X-Env": "prod"}')
+
+        assert Config().HEADERS == {'X-Env': 'prod'}
+
+    def test_collection_overrides_value_from_file(self, monkeypatch):
+        Config.define('FOO', [], 'test key')
+        config = Config.load(fix('sample.conf'))
+        Config.allow_environment_variables()
+        monkeypatch.setenv('FOO', '["baz"]')
+
+        assert config.FOO == ['baz']
+
+    @pytest.mark.parametrize('default', [None, 80, 'text', False])
+    def test_other_defaults_keep_string(self, monkeypatch, default):
+        Config.define('SETTING', default, 'test key')
+        Config.allow_environment_variables()
+        monkeypatch.setenv('SETTING', '0123')
+
+        assert Config().SETTING == '0123'
+
+    @pytest.mark.parametrize('default, value', [
+        ([], 'a.com,b.com'),
+        ([], '{"a": 1}'),
+        ({}, '["a"]'),
+        (set(), '[["a"]]'),
+    ])
+    def test_invalid_collection_raises(self, monkeypatch, default, value):
+        Config.define('SETTING', default, 'test key')
+        Config.allow_environment_variables()
+        monkeypatch.setenv('SETTING', value)
+        config = Config()
+
+        with pytest.raises(ConfigurationError, match='SETTING must be a JSON'):
+            config.get('SETTING')
+
+    def test_invalid_collection_error_names_prefixed_variable(self, monkeypatch):
+        Config.define('HOSTS', [], 'test key')
+        Config.allow_environment_variables(prefix='MYPREFIX_')
+        monkeypatch.setenv('MYPREFIX_HOSTS', 'a.com,b.com')
+
+        with pytest.raises(ConfigurationError) as error:
+            _ = Config().HOSTS
+
+        assert str(error.value) == (
+            'Environment variable MYPREFIX_HOSTS must be a JSON array because '
+            'HOSTS defaults to a list'
+        )
+
+    def test_set_error_asks_for_scalar_values(self, monkeypatch):
+        Config.define('TAGS', set(), 'test key')
+        Config.allow_environment_variables()
+        monkeypatch.setenv('TAGS', '[["a"]]')
+
+        with pytest.raises(ConfigurationError) as error:
+            _ = Config().TAGS
+
+        assert str(error.value) == (
+            'Environment variable TAGS must be a JSON array of scalar values '
+            'because TAGS defaults to a set'
+        )
+
 
 def test_reload_keeps_default_defined_after_load():
     config = Config.load(fix('sample.conf'), defaults={
