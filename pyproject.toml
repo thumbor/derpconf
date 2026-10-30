@@ -23,16 +23,13 @@ classifiers = [
     "Programming Language :: Python :: 3.14",
     "Programming Language :: Python :: 3.15",
 ]
-dependencies = [
-    "six>=1.16.0,<2.0.0",
-]
+dependencies = []
 
 [project.optional-dependencies]
 tests = [
     "pytest>=9.0.0,<10.0.0",
     "pytest-cov>=7.0.0,<8.0.0",
     "tox>=4.0.0,<5.0.0",
-    "six>=1.16.0,<2.0.0",
 ]
 
 [project.urls]

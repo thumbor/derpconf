@@ -11,8 +11,8 @@ sample file from the registered defaults. The whole library lives in
 ## Dev environment setup
 
 - **Prerequisites:** Python 3.11 to 3.15, the versions listed in the
-  `pyproject.toml` classifiers and in the CI matrix. `six` is the only runtime
-  dependency.
+  `pyproject.toml` classifiers and in the CI matrix. There are no runtime
+  dependencies.
 - Install the package in editable mode with the test extras, inside a
   virtualenv:
 
@@ -59,8 +59,8 @@ sample file from the registered defaults. The whole library lives in
 ## Code style
 
 - No formatter, linter or type checker is configured. Match the existing
-  code: `%` string formatting, `six` for Python 2/3 compatibility, classes
-  that derive from `object`, and single-quoted strings.
+  code: `%` string formatting, classes that derive from `object`, and
+  single-quoted strings.
 - Non-empty modules start with the shebang, the `coding: utf-8` line and the
   MIT license header (`# derpconf`, repository URL, license link, copyright).
   Copy it into new modules.
@@ -88,9 +88,9 @@ tox.ini                  ← stale Python 2 era envlist
   `path`. When `path` is `None`, it uses the first entry of `lookup_paths`
   that contains `conf_name`; with neither, it returns a `Config` holding only
   defaults. A path that does not exist raises `ConfigurationError`.
-- A file is executed with `six.exec_` in a fresh module namespace. Every
-  top-level name that equals its own uppercase becomes a setting; lowercase
-  names are ignored.
+- A file is executed with the built-in `exec` in a fresh module namespace.
+  Every top-level name that equals its own uppercase becomes a setting;
+  lowercase names are ignored.
 - A directory loads every `*.conf` file in it in sorted order, later files
   overriding earlier ones. `config_file` ends up pointing at the last file,
   so `reload()` after a directory load re-executes only that file.

@@ -15,7 +15,6 @@ from collections import defaultdict
 from os.path import join, exists, abspath, dirname, isdir
 from types import ModuleType
 
-import six
 from textwrap import fill
 
 
@@ -99,7 +98,7 @@ class Config(object):
             code = config_file.read()
             module = ModuleType(name)
 
-            six.exec_(code, module.__dict__)
+            exec(code, module.__dict__)
 
             conf.config_file = path
 
@@ -123,7 +122,7 @@ class Config(object):
             code = config_file.read()
             module = ModuleType(name)
 
-            six.exec_(code, module.__dict__)
+            exec(code, module.__dict__)
 
             conf = cls(defaults=[])
 
@@ -313,7 +312,7 @@ def format_tuple(value, tabs=0):
 
 
 def format_value(value):
-    if isinstance(value, six.string_types):
+    if isinstance(value, str):
         return "'%s'" % value
 
     if isinstance(value, (tuple, list, set)):
