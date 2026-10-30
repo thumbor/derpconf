@@ -172,11 +172,14 @@ class Config:
         self.__load_from_path(self, cfg)
 
     def validates_presence_of(self, *args):
+        source = getattr(self, 'config_file', 'your configuration file')
+        source = getattr(self, 'config_folder', source)
+
         for arg in args:
             if not hasattr(self, arg):
                 raise ConfigurationError(
                     f'Configuration {arg} was not found and does not have a '
-                    'default value. Please verify your thumbor.conf file'
+                    f'default value. Please verify {source}'
                 )
 
     def get(self, name, default=None):

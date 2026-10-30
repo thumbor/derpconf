@@ -193,6 +193,40 @@ def test_verify_lists_keys_missing_from_file():
     assert len(Config.verify(fix('missing.conf'))) == 1
 
 
+class TestValidatesPresenceOf:
+    def test_accepts_key_with_default(self):
+        Config.define('SOME_KEY', 'default', 'test key')
+
+        Config.load(fix('missing.conf')).validates_presence_of('SOME_KEY')
+
+    def test_names_loaded_file(self):
+        config = Config.load(fix('sample.conf'))
+
+        with pytest.raises(ConfigurationError) as error:
+            config.validates_presence_of('MISSING_KEY')
+
+        assert str(error.value) == (
+            'Configuration MISSING_KEY was not found and does not have a '
+            f'default value. Please verify {fix("sample.conf")}'
+        )
+
+    def test_names_loaded_directory(self):
+        config = Config.load(fix('conf.d'))
+
+        with pytest.raises(ConfigurationError) as error:
+            config.validates_presence_of('MISSING_KEY')
+
+        assert str(error.value).endswith(f'Please verify {fix("conf.d")}')
+
+    def test_without_file_does_not_name_thumbor(self):
+        config = Config.load(None)
+
+        with pytest.raises(ConfigurationError) as error:
+            config.validates_presence_of('MISSING_KEY')
+
+        assert str(error.value).endswith('Please verify your configuration file')
+
+
 class TestItemAccess:
     @pytest.fixture
     def config(self):
