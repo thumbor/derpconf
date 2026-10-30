@@ -25,12 +25,10 @@ classifiers = [
 ]
 dependencies = []
 
-[project.optional-dependencies]
-tests = [
+[dependency-groups]
+dev = [
     "pytest>=9.0.0,<10.0.0",
     "pytest-cov>=7.0.0,<8.0.0",
-]
-lint = [
     "flake8>=7.3.0,<8.0.0",
     "isort>=9.0.0,<10.0.0",
     "pylint>=4.0.8,<5.0.0",

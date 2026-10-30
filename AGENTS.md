@@ -11,16 +11,19 @@ sample file from the registered defaults. The whole library lives in
 ## Dev environment setup
 
 - **Prerequisites:** Python 3.11 to 3.15, the versions listed in the
-  `pyproject.toml` classifiers and in the CI matrix. There are no runtime
-  dependencies.
-- Install the package in editable mode with the `tests` and `lint` extras,
-  inside a virtualenv:
+  `pyproject.toml` classifiers and in the CI matrix, and
+  [uv](https://docs.astral.sh/uv/). There are no runtime dependencies.
+- Create `.venv` with the package in editable mode and the `dev` dependency
+  group, at the versions in `uv.lock`:
 
   ```
   make setup
   ```
 
-  Equivalent to: `pip install -Ue .[tests,lint]`
+  Equivalent to: `uv sync`
+
+- The Makefile targets go through `uv run`. Use `uv run ...` for commands
+  you run directly, so they use the same environment as CI.
 
 ## Running tests
 
@@ -30,7 +33,7 @@ sample file from the registered defaults. The whole library lives in
   make test
   ```
 
-  Equivalent to: `pytest --cov=derpconf --cov-report=term-missing`
+  Equivalent to: `uv run pytest --cov=derpconf --cov-report=term-missing`
 
 - Tests use pytest and live in `tests/test_config.py`; `testpaths` in
   `pyproject.toml` points pytest at `tests/`, and `pythonpath` makes the
@@ -48,9 +51,9 @@ sample file from the registered defaults. The whole library lives in
   `tests/test_config.py`: each `should_*` method becomes a test, its topic
   becomes the test body or a fixture, and each `expect(...)` becomes a plain
   `assert` or `pytest.raises`.
-- Test each Python version with `make setup` and `make test` in its own
-  virtualenv.
-- CI (`.github/workflows/test.yml`) runs `make setup` and `make test` on
+- Test another Python version by setting `UV_PYTHON`, which makes `uv sync`
+  recreate `.venv` with that interpreter: `UV_PYTHON=3.12 make setup test`.
+- CI (`.github/workflows/test.yml`) runs `uv sync --locked` and `make test` on
   Python 3.11, 3.12, 3.13, 3.14 and 3.15 on every push and when a pull
   request is opened or reopened. New commits pushed to a pull request from a
   fork do not re-run it.
@@ -87,8 +90,9 @@ derpconf/
 tests/
   test_config.py         ← pytest suite
   fixtures/              ← sample.conf, missing.conf, conf.d/
-pyproject.toml           ← package metadata, the `tests` and `lint` extras,
+pyproject.toml           ← package metadata, the `dev` dependency group,
                            isort settings
+uv.lock                  ← locked versions of the `dev` group
 Makefile                 ← setup, test, lint
 .flake8                  ← flake8 settings
 .pylintrc                ← pylint settings
@@ -130,8 +134,10 @@ Makefile                 ← setup, test, lint
 - Declare every dependency in `pyproject.toml` as a `>=X.Y.Z,<N.0.0` range,
   where `N` is the next major, the same style thumbor uses. derpconf is
   installed next to thumbor's own dependencies, so never pin an exact
-  version. Without a lockfile, Dependabot only opens a pip pull request when
-  a new release falls outside one of these ranges.
+  version. `uv.lock` pins the `dev` group for CI and local work only and is
+  not shipped in the package. After changing a range, run `uv lock` and
+  commit `uv.lock`: CI runs `uv sync --locked`, which fails on a stale lock.
+  Dependabot's uv ecosystem keeps `uv.lock` current.
 - `.github/workflows/release.yml` publishes releases. A maintainer bumps
   `__version__` in `derpconf/version.py` in a `Release X.Y.Z` commit, merges
   it into `master` and pushes an `X.Y.Z` tag, without a `v` prefix, at that
