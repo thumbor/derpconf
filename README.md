@@ -81,14 +81,20 @@ import os
 conf = Config.load(
     None,
     conf_name='myapp.conf',
-    lookup_paths=[os.curdir, os.path.expanduser('~'), '/etc'],
+    lookup_paths=['/etc', os.path.expanduser('~'), os.curdir],
 )
 ```
 
 With `path=None`, derpconf uses the first directory in `lookup_paths` that
-contains `conf_name`, so list them from most to least trusted. If none
-contains it, or if you pass neither, you get a `Config` that holds only
-defaults. A `path` that does not exist raises `ConfigurationError`.
+contains `conf_name`, so list them from most to least trusted: above, a
+`myapp.conf` under `/etc` wins over one in the working directory, and a
+file dropped into the working directory cannot shadow it. If none contains
+it, or if you pass neither, you get a `Config` that holds only defaults. A
+`path` that does not exist raises `ConfigurationError`.
+
+`conf_name` is joined to each directory as given, so keep it a plain file
+name: a value with `..` escapes the directory, and an absolute value
+replaces it.
 
 ### Loading a directory
 
