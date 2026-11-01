@@ -29,8 +29,10 @@ dependencies = []
 dev = [
     "pytest>=9.0.0,<10.0.0",
     "pytest-cov>=7.0.0,<8.0.0",
+    "black>=26.3.1,<27.0.0",
     "flake8>=7.3.0,<8.0.0",
     "isort>=9.0.0,<10.0.0",
+    "pre-commit>=4.5.1,<5.0.0",
     "pylint>=4.0.8,<5.0.0",
 ]
 
@@ -47,6 +49,10 @@ version = { attr = "derpconf.version.__version__" }
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+
+[tool.black]
+line-length = 88
+target-version = ["py311"]
 
 [tool.isort]
 profile = "black"

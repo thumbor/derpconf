@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # derpconf
-# https://github.com/globocom/derpconf
+# https://github.com/thumbor/derpconf
 
 # Licensed under the MIT license:
 # http://www.opensource.org/licenses/mit-license
@@ -30,10 +30,10 @@ class Config:
     class_aliases = defaultdict(list)
     class_aliased_items = {}
     _allow_environment_variables = False
-    _environment_variables_prefix = ''
+    _environment_variables_prefix = ""
 
     @classmethod
-    def define(cls, key, value, description, group='General'):
+    def define(cls, key, value, description, group="General"):
         cls.class_defaults[key] = value
         cls.class_descriptions[key] = description
         cls.class_group_items[group].append(key)
@@ -59,7 +59,7 @@ class Config:
         return None
 
     @classmethod
-    def allow_environment_variables(cls, prefix=''):
+    def allow_environment_variables(cls, prefix=""):
         cls._allow_environment_variables = True
         cls._environment_variables_prefix = prefix
 
@@ -75,7 +75,7 @@ class Config:
             return cls(defaults=defaults)
 
         if not exists(path):
-            raise ConfigurationError(f'Configuration file not found at path {path}')
+            raise ConfigurationError(f"Configuration file not found at path {path}")
 
         conf = cls(defaults=defaults)
 
@@ -88,14 +88,14 @@ class Config:
             files = sorted(os.listdir(path))
 
             for file in files:
-                if file.endswith('.conf'):
+                if file.endswith(".conf"):
                     filepath = path + os.sep + file
                     conf = Config.__load_from_path(conf, filepath)
 
             return conf
 
-        with open(path, encoding='utf-8') as config_file:
-            name = 'configuration'
+        with open(path, encoding="utf-8") as config_file:
+            name = "configuration"
             code = config_file.read()
             module = ModuleType(name)
 
@@ -116,10 +116,10 @@ class Config:
             return []
 
         if not exists(path):
-            raise ConfigurationError(f'Configuration file not found at path {path}')
+            raise ConfigurationError(f"Configuration file not found at path {path}")
 
-        with open(path, encoding='utf-8') as config_file:
-            name = 'configuration'
+        with open(path, encoding="utf-8") as config_file:
+            name = "configuration"
             code = config_file.read()
             module = ModuleType(name)
 
@@ -140,8 +140,8 @@ class Config:
             return not_found
 
     def __init__(self, **kw):
-        if 'defaults' in kw:
-            self.defaults = kw['defaults']
+        if "defaults" in kw:
+            self.defaults = kw["defaults"]
 
         self._items = kw
 
@@ -164,7 +164,7 @@ class Config:
         return values
 
     def reload(self):
-        cfg = getattr(self, 'config_file', None)
+        cfg = getattr(self, "config_file", None)
 
         if cfg is None:
             return
@@ -172,14 +172,14 @@ class Config:
         self.__load_from_path(self, cfg)
 
     def validates_presence_of(self, *args):
-        source = getattr(self, 'config_file', 'your configuration file')
-        source = getattr(self, 'config_folder', source)
+        source = getattr(self, "config_file", "your configuration file")
+        source = getattr(self, "config_folder", source)
 
         for arg in args:
             if not hasattr(self, arg):
                 raise ConfigurationError(
-                    f'Configuration {arg} was not found and does not have a '
-                    f'default value. Please verify {source}'
+                    f"Configuration {arg} was not found and does not have a "
+                    f"default value. Please verify {source}"
                 )
 
     def get(self, name, default=None):
@@ -191,12 +191,12 @@ class Config:
     def get_description(self, name):
         if hasattr(self, name):
             return self.class_descriptions.get(name, None)
-        raise KeyError(f'No config called \'{name}\'')
+        raise KeyError(f"No config called '{name}'")
 
     def __setattr__(self, name, value):
         if name in self.__class__.class_aliased_items:
             logging.warning(
-                'Option %s is marked as deprecated please use %s instead.',
+                "Option %s is marked as deprecated please use %s instead.",
                 name,
                 self.__class__.class_aliased_items[name],
             )
@@ -205,7 +205,7 @@ class Config:
             super().__setattr__(name, value)
 
     def __getattribute__(self, name):
-        if name in ['_allow_environment_variables', '_environment_variables_prefix']:
+        if name in ["_allow_environment_variables", "_environment_variables_prefix"]:
             return super().__getattribute__(name)
 
         if self._allow_environment_variables:
@@ -223,15 +223,15 @@ class Config:
 
         if name in self.__class__.class_aliased_items:
             logging.warning(
-                'Option %s is marked as deprecated please use %s instead.',
+                "Option %s is marked as deprecated please use %s instead.",
                 name,
                 self.__class__.class_aliased_items[name],
             )
 
             return self.__getattr__(self.__class__.class_aliased_items[name])
 
-        if 'defaults' in self.__dict__ and name in self.__dict__['defaults']:
-            return self.__dict__['defaults'][name]
+        if "defaults" in self.__dict__ and name in self.__dict__["defaults"]:
+            return self.__dict__["defaults"][name]
 
         if name in self.__class__.class_defaults:
             return self.__class__.class_defaults[name]
@@ -241,7 +241,7 @@ class Config:
     def __getitem__(self, name):
         if hasattr(self, name):
             return getattr(self, name)
-        raise KeyError(f'No config called \'{name}\'')
+        raise KeyError(f"No config called '{name}'")
 
     def __setitem__(self, name, value):
         setattr(self, name, value)
@@ -250,46 +250,46 @@ class Config:
     def get_config_text(cls):
         result = []
         max_len = 80
-        separator = '#'
+        separator = "#"
 
         for group in cls.class_groups:
             keys = cls.class_group_items[group]
             sep_size = int(round((max_len - len(group)) / 2, 0)) - 1
-            group_name = separator * sep_size + ' ' + group + ' ' + separator * sep_size
+            group_name = separator * sep_size + " " + group + " " + separator * sep_size
 
             if len(group_name) < max_len:
                 group_name += separator
             result.append(group_name)
 
             for key in keys:
-                result.append('')
+                result.append("")
                 value = cls.class_defaults[key]
                 description = cls.class_descriptions[key]
 
-                wrapped = fill(description, width=78, subsequent_indent='## ')
+                wrapped = fill(description, width=78, subsequent_indent="## ")
 
-                result.append(f'## {wrapped}')
+                result.append(f"## {wrapped}")
 
                 if key in cls.class_aliases:
                     result.append(f'## Aliases: {", ".join(cls.class_aliases[key])}')
-                result.append(f'## Defaults to: {format_value(value)}')
-                result.append(f'#{key} = {format_value(value)}')
-            result.append('')
+                result.append(f"## Defaults to: {format_value(value)}")
+                result.append(f"#{key} = {format_value(value)}")
+            result.append("")
             result.append(separator * max_len)
-            result.append('')
-            result.append('')
+            result.append("")
+            result.append("")
 
-        return '\n'.join(result)
+        return "\n".join(result)
 
 
 def verify_config(path=None):
-    blue = '\033[94m'
-    reset = '\033[0m'
-    green = '\033[92m'
+    blue = "\033[94m"
+    reset = "\033[0m"
+    green = "\033[92m"
 
     if path is None:
         if len(sys.argv) < 2:
-            raise ValueError('You need to specify a path to verify.')
+            raise ValueError("You need to specify a path to verify.")
         path = sys.argv[1]
     validation = Config.verify(path)
 
@@ -301,31 +301,31 @@ def verify_config(path=None):
 
 
 def generate_config():
-    sys.stdout.write(f'{Config.get_config_text()}\n')
+    sys.stdout.write(f"{Config.get_config_text()}\n")
 
 
-SPACES = ' ' * 4
+SPACES = " " * 4
 
 
 def format_tuple(value, tabs=0):
     separator = SPACES * (tabs + 0)
     item_separator = SPACES * (tabs + 1)
-    start_delimiter = '(' if isinstance(value, tuple) else '['
-    end_delimiter = ')' if isinstance(value, tuple) else ']'
-    trailing_comma = ',' if tabs > 0 else ''
+    start_delimiter = "(" if isinstance(value, tuple) else "["
+    end_delimiter = ")" if isinstance(value, tuple) else "]"
+    trailing_comma = "," if tabs > 0 else ""
 
-    representation = ''
+    representation = ""
 
     if tabs != 0:
-        representation += '#'
-    representation += f'{separator}{start_delimiter}\n'
+        representation += "#"
+    representation += f"{separator}{start_delimiter}\n"
 
     for item in value:
         if isinstance(item, (tuple, list, set)):
             representation += format_tuple(item, tabs + 1)
         else:
-            representation += f'#{item_separator}{format_value(item)},\n'
-    representation += f'#{separator}{end_delimiter}{trailing_comma}\n'
+            representation += f"#{item_separator}{format_value(item)},\n"
+    representation += f"#{separator}{end_delimiter}{trailing_comma}\n"
 
     return representation
 
@@ -338,3 +338,4 @@ def format_value(value):
         return format_tuple(value)
 
     return str(value)
+

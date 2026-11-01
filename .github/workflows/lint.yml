@@ -11,6 +11,23 @@ env:
   DEFAULT_PYTHON_VERSION: "3.11"
   UV_PYTHON_DOWNLOADS: never
 jobs:
+  black:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ env.DEFAULT_PYTHON_VERSION }}
+      - name: Install uv
+        uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: "0.13.1"
+          python-version: ${{ env.DEFAULT_PYTHON_VERSION }}
+          enable-cache: true
+      - name: Install dependencies
+        run: uv sync --locked
+      - name: Run black
+        run: make black
   flake8:
     runs-on: ubuntu-latest
     steps:

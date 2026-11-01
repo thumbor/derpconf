@@ -223,9 +223,10 @@ Called without a path, `verify_config()` takes it from `sys.argv[1]`.
 ## Development
 
 ```
-make setup    # uv sync: .venv with the dev dependency group
-make test     # pytest suite with coverage
-make lint     # flake8, isort and pylint
+make setup               # uv sync: .venv with the dev dependency group
+make pre-commit-install  # run the linters on every commit
+make test                # pytest suite with coverage
+make lint                # black, flake8, isort and pylint
 ```
 
 CI runs the suite on Python 3.11 to 3.15 and the linters on Python 3.11. See
