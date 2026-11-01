@@ -338,4 +338,3 @@ def format_value(value):
         return format_tuple(value)
 
     return str(value)
-
