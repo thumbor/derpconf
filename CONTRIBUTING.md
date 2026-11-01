@@ -28,6 +28,16 @@ dependency group declared in `pyproject.toml` at the versions pinned in
 `uv.lock`. The other Makefile targets run their tools through `uv run`, so
 there is no virtualenv to activate.
 
+Then install the pre-commit hook, once per clone:
+
+```bash
+make pre-commit-install
+```
+
+It runs black, isort, flake8 and pylint on every commit, so a commit that
+would fail `make lint` is refused before it reaches CI. `make pre-commit`
+runs the same hooks on every file.
+
 ## Running Tests
 
 Run the suite with:
@@ -58,16 +68,21 @@ UV_PYTHON=3.12 make setup test
 
 ## Code Style
 
-CI runs flake8, isort and pylint. Run them locally before pushing:
+CI runs black, flake8, isort and pylint. Run them locally before pushing:
 
 ```bash
 make lint
 ```
 
-There is no formatter, so match the code around your change: f-strings
+black formats the code; `make lint` only checks, so format with:
+
+```bash
+uv run black derpconf tests
+```
+
+Beyond what black decides, match the code around your change: f-strings
 (except in `logging` calls, which take `%s` placeholders and the values as
-arguments), single-quoted strings, and the license header at the top of
-every new module.
+arguments) and the license header at the top of every new module.
 
 thumbor depends on `derpconf>=0.8.4,<1.0.0`, so keep `Config.define`,
 `Config.alias`, `Config.load`, `Config.allow_environment_variables`,
