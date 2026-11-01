@@ -22,13 +22,13 @@ derpconf supports Python 3.11 to 3.15.
 ## Quick start
 
 Declare your settings, usually in a `config.py` module of your application.
-The group is optional and defaults to `'General'`:
+The group is optional and defaults to `"General"`:
 
 ```python
 from derpconf.config import Config
 
-Config.define('HOST', '127.0.0.1', 'Address the server listens on', 'Server')
-Config.define('PORT', 8888, 'Port the server listens on', 'Server')
+Config.define("HOST", "127.0.0.1", "Address the server listens on", "Server")
+Config.define("PORT", 8888, "Port the server listens on", "Server")
 ```
 
 Write a configuration file. It is plain Python, and every top-level name
@@ -37,22 +37,22 @@ written in uppercase becomes a setting; lowercase names are ignored:
 ```python
 # /etc/myapp.conf
 PORT = 9000
-ALLOWED_SOURCES = ['example.com', 'cdn.example.com']
+ALLOWED_SOURCES = ["example.com", "cdn.example.com"]
 ```
 
 Load it and read the values:
 
 ```python
-conf = Config.load('/etc/myapp.conf')
+conf = Config.load("/etc/myapp.conf")
 
 conf.PORT                 # 9000, from the file
-conf.HOST                 # '127.0.0.1', the declared default
-conf['PORT']              # 9000, item access works too
-conf.get('TIMEOUT', 30)   # 30, the fallback for an unknown setting
+conf.HOST                 # "127.0.0.1", the declared default
+conf["PORT"]              # 9000, item access works too
+conf.get("TIMEOUT", 30)   # 30, the fallback for an unknown setting
 ```
 
 Reading a setting that has neither a value nor a default raises
-`AttributeError`, or `KeyError` when you use `conf['...']`.
+`AttributeError`, or `KeyError` when you use `conf["..."]`.
 
 > Configuration files are executed as Python code with the privileges of your
 > process. Only load files from locations you trust. See
@@ -80,8 +80,8 @@ import os
 
 conf = Config.load(
     None,
-    conf_name='myapp.conf',
-    lookup_paths=[os.curdir, os.path.expanduser('~'), '/etc'],
+    conf_name="myapp.conf",
+    lookup_paths=[os.curdir, os.path.expanduser("~"), "/etc"],
 )
 ```
 
@@ -104,7 +104,7 @@ loaded in alphabetical order, and later files override earlier ones:
 ### Per-load defaults
 
 ```python
-conf = Config.load('/etc/myapp.conf', defaults={'HOST': '0.0.0.0'})
+conf = Config.load("/etc/myapp.conf", defaults={"HOST": "0.0.0.0"})
 ```
 
 Values in `defaults` take precedence over the `Config.define` defaults for
@@ -114,7 +114,7 @@ this instance only, and values from the file still win over both.
 
 ```python
 Config.allow_environment_variables()
-conf = Config.load('/etc/myapp.conf')
+conf = Config.load("/etc/myapp.conf")
 ```
 
 ```
@@ -122,8 +122,8 @@ $ PORT=9100 python app.py
 ```
 
 Any environment variable whose name matches a setting now overrides it. The
-value is always a string: `conf.PORT` above is `'9100'`, not `9100`, and
-`DEBUG=False` gives the truthy string `'False'`, so convert values where you
+value is always a string: `conf.PORT` above is `"9100"`, not `9100`, and
+`DEBUG=False` gives the truthy string `"False"`, so convert values where you
 use them. The switch applies to every `Config` in the process, and there is
 no public call to turn it off again.
 
@@ -131,7 +131,7 @@ To keep your settings apart from variables that other programs read, pass a
 prefix:
 
 ```python
-Config.allow_environment_variables(prefix='MYAPP_')
+Config.allow_environment_variables(prefix="MYAPP_")
 ```
 
 ```
@@ -152,8 +152,8 @@ last file. You do not need to reload to see defaults declared later.
 ## Renaming settings
 
 ```python
-Config.define('STORAGE', 'file', 'Storage backend', 'Storage')
-Config.alias('OLD_STORAGE', 'STORAGE')
+Config.define("STORAGE", "file", "Storage backend", "Storage")
+Config.alias("OLD_STORAGE", "STORAGE")
 ```
 
 Reading or assigning `OLD_STORAGE`, in code or in a configuration file, logs a
@@ -163,7 +163,7 @@ deprecation warning and uses `STORAGE` instead. The generated sample lists
 ## Requiring settings
 
 ```python
-conf.validates_presence_of('SECRET_KEY', 'DATABASE_URL')
+conf.validates_presence_of("SECRET_KEY", "DATABASE_URL")
 ```
 
 Raises `ConfigurationError` when any of the given settings has neither a value
@@ -174,8 +174,8 @@ nor a default.
 ```python
 from derpconf.config import Config, generate_config
 
-Config.define('HOST', '127.0.0.1', 'Address the server listens on', 'Server')
-Config.define('PORT', 8888, 'Port the server listens on', 'Server')
+Config.define("HOST", "127.0.0.1", "Address the server listens on", "Server")
+Config.define("PORT", 8888, "Port the server listens on", "Server")
 
 generate_config()
 ```
@@ -206,7 +206,7 @@ For a real-world example, see
 ```python
 from derpconf.config import verify_config
 
-verify_config('/etc/myapp.conf')
+verify_config("/etc/myapp.conf")
 ```
 
 Prints one line, with colors, for each declared setting the file does not

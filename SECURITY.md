@@ -76,7 +76,7 @@ consider the following:
   overrides it, so enable it only when the process environment is trusted.
 - Values read from environment variables are always strings. A boolean
   setting given as `False` through the environment is the non-empty string
-  `'False'`, which is truthy, so convert and validate security-sensitive
+  `"False"`, which is truthy, so convert and validate security-sensitive
   settings before relying on them.
 - Do not use secrets as default values in `Config.define`. `generate_config`
   writes every default into the sample file and `verify_config` prints the
