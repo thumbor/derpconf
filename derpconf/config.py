@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 # derpconf
-# https://github.com/thumbor/derpconf
+# https://github.com/globocom/derpconf
 
 # Licensed under the MIT license:
 # http://www.opensource.org/licenses/mit-license
