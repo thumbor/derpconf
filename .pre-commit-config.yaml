@@ -1,0 +1,37 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+  - repo: https://github.com/PyCQA/isort
+    rev: 9.0.2
+    hooks:
+      - id: isort
+        entry: uv run --no-sync isort
+        language: system
+        args: [--settings-file=./pyproject.toml]
+  - repo: https://github.com/psf/black
+    rev: 26.10.1
+    hooks:
+      - id: black
+        entry: uv run --no-sync black
+        language: system
+        args: [--config=./pyproject.toml]
+  - repo: https://github.com/pycqa/flake8
+    rev: 7.4.1
+    hooks:
+      - id: flake8
+        entry: uv run --no-sync flake8
+        language: system
+        args: [--config=./.flake8, derpconf, tests]
+        pass_filenames: false
+  - repo: https://github.com/pycqa/pylint
+    rev: v4.1.3
+    hooks:
+      - id: pylint
+        entry: uv run --no-sync pylint
+        language: system
+        args: [--rcfile=./.pylintrc, derpconf, tests]
+        pass_filenames: false
