@@ -60,21 +60,29 @@ sample file from the registered defaults. The whole library lives in
 
 ## Code style
 
-- flake8, isort and pylint use the same rules as libthumbor: `.flake8`,
-  `[tool.isort]` in `pyproject.toml` (black profile, 88 columns) and
-  `.pylintrc`, which only turns off the docstring checks. Run all three
+- black, flake8, isort and pylint use the same rules as libthumbor:
+  `[tool.black]` in `pyproject.toml` (88 columns, Python 3.11 target),
+  `.flake8`, `[tool.isort]` in `pyproject.toml` (black profile, 88 columns)
+  and `.pylintrc`, which only turns off the docstring checks. Run all four
   with:
 
   ```
   make lint
   ```
 
-  `make flake8`, `make isort-check` and `make pylint` run one at a time.
-  `.github/workflows/lint.yml` runs each as its own job on Python 3.11, with
-  the same triggers as the test workflow.
-- There is no formatter and `make isort-check` only checks. Keep
-  single-quoted strings and write f-strings, except in `logging` calls,
-  which take `%s` placeholders and the values as arguments.
+  `make black`, `make flake8`, `make isort-check` and `make pylint` run one
+  at a time; every one of them only checks. `.github/workflows/lint.yml`
+  runs each as its own job on Python 3.11, with the same triggers as the
+  test workflow.
+- black formats the code, so let it decide quoting and line breaks: it
+  normalizes strings to double quotes. Format with
+  `uv run black derpconf tests`. Write f-strings, except in `logging`
+  calls, which take `%s` placeholders and the values as arguments.
+- `.pre-commit-config.yaml` runs the same four tools plus trailing
+  whitespace, end-of-file and YAML checks before each commit, through
+  `uv run --no-sync` so they use `.venv`. `make pre-commit-install`
+  installs the hook once per clone and `make pre-commit` runs it on every
+  file.
 - Non-empty modules start with the shebang, the `coding: utf-8` line and the
   MIT license header (`# derpconf`, repository URL, license link, copyright).
   Copy it into new modules.
@@ -91,9 +99,10 @@ tests/
   test_config.py         ← pytest suite
   fixtures/              ← sample.conf, missing.conf, conf.d/
 pyproject.toml           ← package metadata, the `dev` dependency group,
-                           isort settings
+                           black and isort settings
 uv.lock                  ← locked versions of the `dev` group
-Makefile                 ← setup, test, lint
+Makefile                 ← setup, test, lint, pre-commit
+.pre-commit-config.yaml  ← pre-commit hooks: black, isort, flake8, pylint
 .flake8                  ← flake8 settings
 .pylintrc                ← pylint settings
 .github/workflows/       ← unittests matrix, lint jobs and PyPI release
