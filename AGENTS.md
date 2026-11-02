@@ -114,9 +114,15 @@ Makefile                 ← setup, test, lint, pre-commit
   `path`. When `path` is `None`, it uses the first entry of `lookup_paths`
   that contains `conf_name`; with neither, it returns a `Config` holding only
   defaults. A path that does not exist raises `ConfigurationError`.
-- A file is executed with the built-in `exec` in a fresh module namespace.
-  Every top-level name that equals its own uppercase becomes a setting;
-  lowercase names are ignored.
+- A file is compiled under its own path and executed with the built-in
+  `exec` in a fresh namespace holding only `__name__` (`"configuration"`)
+  and `__file__`. Every top-level name that equals its own uppercase becomes
+  a setting; lowercase names are ignored.
+- Any exception from reading, compiling or executing a file,
+  `UnicodeDecodeError` and `SyntaxError` included, is raised as
+  `ConfigurationError` naming the file, with the original as `__cause__`.
+  The namespace is a plain dict, not a `ModuleType`, because a module's
+  `__spec__ = None` makes linecache warn on Python 3.15.
 - Files are read as UTF-8, whatever the locale.
 - A directory loads every `*.conf` file in it in sorted order, later files
   overriding earlier ones. `config_file` ends up pointing at the last file,

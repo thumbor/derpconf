@@ -54,6 +54,11 @@ conf.get("TIMEOUT", 30)   # 30, the fallback for an unknown setting
 Reading a setting that has neither a value nor a default raises
 `AttributeError`, or `KeyError` when you use `conf["..."]`.
 
+A file that cannot be read as UTF-8, fails to compile or raises while it
+runs makes `Config.load` raise `ConfigurationError`, with a message naming
+the file and the original exception as its `__cause__`. Inside the file,
+`__file__` holds the path it was loaded from.
+
 > Configuration files are executed as Python code with the privileges of your
 > process. Only load files from locations you trust. See
 > [SECURITY.md](https://github.com/thumbor/derpconf/blob/master/SECURITY.md).
@@ -165,7 +170,9 @@ it, and plain names override settings again.
 
 `conf.reload()` executes the file `conf` was loaded from again, picking up
 values that changed on disk. After loading a directory, it re-reads only the
-last file. You do not need to reload to see defaults declared later.
+last file. If the file now fails, `reload()` raises `ConfigurationError` and
+keeps the values it had. You do not need to reload to see defaults declared
+later.
 
 ## Renaming settings
 
