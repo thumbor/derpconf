@@ -1,8 +1,8 @@
 name: unittests
 on:
   push:
+    branches: [master]
   pull_request:
-    types: [opened, reopened]
 
 env:
   UV_PYTHON_DOWNLOADS: never
