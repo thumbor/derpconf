@@ -17,6 +17,8 @@ from os.path import abspath, exists, isdir, join
 from textwrap import fill
 from types import ModuleType
 
+logger = logging.getLogger(__name__)
+
 
 class ConfigurationError(RuntimeError):
     pass
@@ -241,7 +243,7 @@ class Config:
 
     def __setattr__(self, name, value):
         if name in self.__class__.class_aliased_items:
-            logging.warning(
+            logger.warning(
                 "Option %s is marked as deprecated please use %s instead.",
                 name,
                 self.__class__.class_aliased_items[name],
@@ -288,7 +290,7 @@ class Config:
             return self.__dict__[name]
 
         if name in self.__class__.class_aliased_items:
-            logging.warning(
+            logger.warning(
                 "Option %s is marked as deprecated please use %s instead.",
                 name,
                 self.__class__.class_aliased_items[name],
@@ -349,15 +351,15 @@ class Config:
 
 
 def verify_config(path=None):
-    blue = "\033[94m"
-    reset = "\033[0m"
-    green = "\033[92m"
-
     if path is None:
         if len(sys.argv) < 2:
             raise ValueError("You need to specify a path to verify.")
         path = sys.argv[1]
     validation = Config.verify(path)
+
+    blue, green, reset = "", "", ""
+    if sys.stdout.isatty():
+        blue, green, reset = "\033[94m", "\033[92m", "\033[0m"
 
     for key, default in validation:
         sys.stdout.write(
