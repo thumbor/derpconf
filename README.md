@@ -157,8 +157,9 @@ Config.alias('OLD_STORAGE', 'STORAGE')
 ```
 
 Reading or assigning `OLD_STORAGE`, in code or in a configuration file, logs a
-deprecation warning and uses `STORAGE` instead. The generated sample lists
-`OLD_STORAGE` among the aliases of `STORAGE`.
+deprecation warning on the `derpconf.config` logger and uses `STORAGE`
+instead. The generated sample lists `OLD_STORAGE` among the aliases of
+`STORAGE`.
 
 ## Requiring settings
 
@@ -209,8 +210,8 @@ from derpconf.config import verify_config
 verify_config('/etc/myapp.conf')
 ```
 
-Prints one line, with colors, for each declared setting the file does not
-assign:
+Prints one line for each declared setting the file does not assign, colored
+when standard output is a terminal:
 
 ```
 Configuration "HOST" not found in file /etc/myapp.conf. Using "127.0.0.1" instead.

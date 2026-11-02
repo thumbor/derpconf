@@ -165,6 +165,7 @@ class TestSettingAnAlias:
             ]
             * 2
         )
+        assert {record.name for record in caplog.records} == {"derpconf.config"}
 
 
 class TestSettingAnAliasedKey:
@@ -436,6 +437,17 @@ def test_get_config_text_lists_aliases():
 class TestVerifyConfig:
     def test_prints_missing_keys_with_defaults(self, capsys):
         Config.define("SOME_KEY", "default", "test key")
+
+        verify_config(fix("missing.conf"))
+
+        assert capsys.readouterr().out == (
+            f'Configuration "SOME_KEY" not found in file {fix("missing.conf")}. '
+            'Using "default" instead.\n'
+        )
+
+    def test_colors_output_on_a_tty(self, capsys, monkeypatch):
+        Config.define("SOME_KEY", "default", "test key")
+        monkeypatch.setattr(sys.stdout, "isatty", lambda: True)
 
         verify_config(fix("missing.conf"))
 
