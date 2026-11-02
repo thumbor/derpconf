@@ -54,9 +54,9 @@ sample file from the registered defaults. The whole library lives in
 - Test another Python version by setting `UV_PYTHON`, which makes `uv sync`
   recreate `.venv` with that interpreter: `UV_PYTHON=3.12 make setup test`.
 - CI (`.github/workflows/test.yml`) runs `uv sync --locked` and `make test` on
-  Python 3.11, 3.12, 3.13, 3.14 and 3.15 on every push and when a pull
-  request is opened or reopened. New commits pushed to a pull request from a
-  fork do not re-run it.
+  Python 3.11, 3.12, 3.13, 3.14 and 3.15 on every push to `master` and on
+  every pull request when it is opened, gets new commits or is reopened, fork
+  or not. Pushing a branch without opening a pull request runs nothing.
 
 ## Code style
 
