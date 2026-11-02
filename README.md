@@ -209,6 +209,12 @@ generate_config()
 ################################################################################
 ```
 
+When a default is made of strings, finite numbers, booleans, `None`, lists,
+tuples, sets and dicts, uncommenting its lines gives it back exactly: strings
+are written with `repr()`, so quotes, backslashes and line breaks are escaped,
+and sets keep their braces. Any other value is written with `str()`, which is
+not always valid Python: `float("inf")` comes out as `inf`.
+
 Every default ends up in the sample, so never use a secret as a default value.
 For a real-world example, see
 [thumbor's settings](https://github.com/thumbor/thumbor/blob/master/thumbor/config.py).
