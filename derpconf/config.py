@@ -383,8 +383,12 @@ SPACES = " " * 4
 def format_tuple(value, tabs=0):
     separator = SPACES * (tabs + 0)
     item_separator = SPACES * (tabs + 1)
-    start_delimiter = "(" if isinstance(value, tuple) else "["
-    end_delimiter = ")" if isinstance(value, tuple) else "]"
+    if isinstance(value, tuple):
+        start_delimiter, end_delimiter = "(", ")"
+    elif isinstance(value, set):
+        start_delimiter, end_delimiter = ("{", "}") if value else ("set(", ")")
+    else:
+        start_delimiter, end_delimiter = "[", "]"
     trailing_comma = "," if tabs > 0 else ""
 
     representation = ""
@@ -405,7 +409,7 @@ def format_tuple(value, tabs=0):
 
 def format_value(value):
     if isinstance(value, str):
-        return f"'{value}'"
+        return repr(value)
 
     if isinstance(value, (tuple, list, set)):
         return format_tuple(value)
