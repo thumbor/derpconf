@@ -15,7 +15,6 @@ import sys
 from collections import defaultdict
 from os.path import abspath, dirname, exists, isdir, join
 from textwrap import fill
-from types import ModuleType
 
 
 class ConfigurationError(RuntimeError):
@@ -140,21 +139,33 @@ class Config:
 
             return conf
 
-        with open(path, encoding="utf-8") as config_file:
-            name = "configuration"
-            code = config_file.read()
-            module = ModuleType(name)
+        namespace = cls._execute(path)
+        conf.config_file = path
 
-            exec(code, module.__dict__)  # pylint: disable=exec-used
+        for name, value in namespace.items():
+            if name.upper() == name:
+                conf._items[name] = value  # pylint: disable=protected-access
+                setattr(conf, name, value)
 
-            conf.config_file = path
+        return conf
 
-            for name, value in module.__dict__.items():
-                if name.upper() == name:
-                    conf._items[name] = value  # pylint: disable=protected-access
-                    setattr(conf, name, value)
+    @staticmethod
+    def _execute(path):
+        # Not a ModuleType: its __spec__ = None makes linecache warn on Python
+        # 3.15 when a traceback frame names a real file instead of <string>.
+        namespace = {"__name__": "configuration", "__file__": os.fspath(path)}
 
-            return conf
+        try:
+            with open(path, encoding="utf-8") as config_file:
+                code = config_file.read()
+
+            exec(compile(code, path, "exec"), namespace)  # pylint: disable=exec-used
+        except Exception as error:
+            raise ConfigurationError(
+                f"Error in configuration file {path}: {type(error).__name__}: {error}"
+            ) from error
+
+        return namespace
 
     @classmethod
     def verify(cls, path):
@@ -164,26 +175,20 @@ class Config:
         if not exists(path):
             raise ConfigurationError(f"Configuration file not found at path {path}")
 
-        with open(path, encoding="utf-8") as config_file:
-            name = "configuration"
-            code = config_file.read()
-            module = ModuleType(name)
+        namespace = cls._execute(path)
+        conf = cls(defaults=[])
 
-            exec(code, module.__dict__)  # pylint: disable=exec-used
+        for name, value in namespace.items():
+            if name.upper() == name:
+                setattr(conf, name, value)
 
-            conf = cls(defaults=[])
+        not_found = []
 
-            for name, value in module.__dict__.items():
-                if name.upper() == name:
-                    setattr(conf, name, value)
+        for key, value in cls.class_defaults.items():
+            if key not in conf.__dict__:
+                not_found.append((key, value))
 
-            not_found = []
-
-            for key, value in cls.class_defaults.items():
-                if key not in conf.__dict__:
-                    not_found.append((key, value))
-
-            return not_found
+        return not_found
 
     def __init__(self, **kw):
         if "defaults" in kw:
