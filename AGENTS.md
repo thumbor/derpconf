@@ -130,7 +130,10 @@ Makefile                 ← setup, test, lint, pre-commit
   of aliases resolve to the final name.
 - `get_config_text()` (printed by `generate_config()`) renders every group and
   setting, with its description, aliases and default, as a commented sample
-  file.
+  file. For a default made of literals, uncommenting its lines must give it
+  back: strings go through `repr()`, and lists, tuples and sets are written
+  one item per line inside their own brackets, with an empty set as `set(`
+  and `)`. Other values go through `str()`, so `float("inf")` prints `inf`.
 
 ## Contribution guidelines
 

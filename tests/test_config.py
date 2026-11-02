@@ -433,6 +433,34 @@ def test_reload_reads_file_again(tmp_path):
     assert config.FOO == "baz"
 
 
+@pytest.mark.parametrize(
+    "default",
+    [
+        "plain",
+        "it's",
+        'say "hi"',
+        "C:\\Users\\thumbor",
+        "first\nsecond",
+        ["it's", ("tab\there", "x")],
+        {"a", "b"},
+        set(),
+        [set(), {("a", 1)}],
+    ],
+)
+def test_uncommented_sample_evaluates_to_default(default):
+    Config.define("SOME_KEY", default, "Some key")
+
+    lines = Config.get_config_text().split("\n")
+    start = next(i for i, line in enumerate(lines) if line.startswith("#SOME_KEY ="))
+    end = lines.index("", start)
+    setting = "\n".join(line[1:] for line in lines[start:end])
+    namespace = {}
+    exec(setting, namespace)  # pylint: disable=exec-used
+
+    assert all(line.startswith("#") for line in lines if line)
+    assert namespace["SOME_KEY"] == default
+
+
 def test_get_config_text_formats_tuple_default():
     Config.define(
         "SOME_TUPLE_VAR", ("foo", "bar"), "Tuple var from config", "some config"
