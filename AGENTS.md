@@ -126,8 +126,8 @@ Makefile                 ← setup, test, lint, pre-commit
   name), values from the loaded files, the `defaults` passed to `load`, the
   default from `Config.define`, and finally raises `AttributeError`.
 - `Config.alias(old_name, new_name)` makes `old_name` a deprecated alias:
-  reading or setting it logs a warning and redirects to `new_name`. Aliases
-  of aliases resolve to the final name.
+  reading or setting it logs a warning on the `derpconf.config` logger and
+  redirects to `new_name`. Aliases of aliases resolve to the final name.
 - `get_config_text()` (printed by `generate_config()`) renders every group and
   setting, with its description, aliases and default, as a commented sample
   file.
