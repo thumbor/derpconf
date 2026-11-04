@@ -166,8 +166,14 @@ Makefile                 ← setup, test, lint, pre-commit
   to every `Config` in the process. `__getattribute__` checks the
   environment for every attribute name except `_allow_environment_variables`
   and `_environment_variables_prefix`, including methods such as `get` and
-  `reload` and internals such as `defaults`, and the values it returns are
-  always strings.
+  `reload` and internals such as `defaults`. The value it returns is cast to
+  the type of the `Config.define` default (aliases resolved, keyed on the
+  unprefixed name) through `ENVIRONMENT_PARSERS`; a `None`, `str` or other
+  default, or no definition at all, keeps the raw string, and so do an empty
+  value and a `bool` value that is not a recognized boolean (thumbor uses a
+  `False` default to switch off string settings). Any other value that does
+  not parse raises `ConfigurationError` naming the variable, never echoing
+  the value, since it may be a secret.
 - `verify_config` prints the default used for each missing key, and
   `generate_config` prints every default. Never put real secrets in
   `Config.define` defaults, fixtures or examples.

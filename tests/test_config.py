@@ -305,6 +305,112 @@ class TestEnvironmentVariables:
         assert config.FOO == "baz"
 
 
+class TestEnvironmentVariableTypes:
+    @pytest.mark.parametrize(
+        "default, raw, expected",
+        [
+            ("", "foo", "foo"),
+            (0, "10", 10),
+            (0.0, "10.5", 10.5),
+            (False, "True", True),
+            (True, "off", False),
+            (True, "0", False),
+            ([], '["foo", "bar"]', ["foo", "bar"]),
+            ((), "[1, 2]", (1, 2)),
+            (set(), "[1, 2]", {1, 2}),
+            ({}, '{"foo": "bar"}', {"foo": "bar"}),
+        ],
+    )
+    def test_follows_type_of_defined_default(self, monkeypatch, default, raw, expected):
+        Config.define("SETTING", default, "Setting.")
+        Config.allow_environment_variables()
+        monkeypatch.setenv("SETTING", raw)
+
+        value = Config().SETTING
+
+        assert value == expected
+        assert type(value) is type(expected)
+
+    @pytest.mark.parametrize("raw", ["0123", "00", "no", "null", "1e3", "[1]"])
+    def test_none_default_stays_string(self, monkeypatch, raw):
+        Config.define("PASSWORD", None, "Password.")
+        Config.allow_environment_variables()
+        monkeypatch.setenv("PASSWORD", raw)
+
+        assert Config().PASSWORD == raw
+
+    def test_undefined_setting_stays_string(self, monkeypatch):
+        Config.allow_environment_variables()
+        monkeypatch.setenv("UNDEFINED", "123")
+
+        assert Config().UNDEFINED == "123"
+
+    def test_load_defaults_do_not_change_type(self, monkeypatch):
+        config = Config.load(None, defaults={"NAME": "x"})
+        Config.allow_environment_variables()
+        monkeypatch.setenv("NAME", "123")
+
+        assert config.NAME == "123"
+
+    def test_alias_uses_type_of_target_default(self, monkeypatch):
+        Config.define("PORT", 8888, "Port.")
+        Config.alias("OLD_PORT", "PORT")
+        Config.allow_environment_variables()
+        monkeypatch.setenv("OLD_PORT", "9000")
+
+        assert Config().OLD_PORT == 9000
+
+    def test_prefix_casts_by_unprefixed_name(self, monkeypatch):
+        Config.define("PORT", 8888, "Port.")
+        Config.allow_environment_variables(prefix="MYAPP_")
+        monkeypatch.setenv("MYAPP_PORT", "9000")
+
+        assert Config().PORT == 9000
+
+    @pytest.mark.parametrize("raw", ["*", "https://www.example.com", "disabled", ""])
+    def test_unrecognized_boolean_keeps_raw_string(self, monkeypatch, raw):
+        Config.define("ACCESS_CONTROL_ALLOW_ORIGIN_HEADER", False, "Header.")
+        Config.allow_environment_variables()
+        monkeypatch.setenv("ACCESS_CONTROL_ALLOW_ORIGIN_HEADER", raw)
+        config = Config()
+
+        assert config.get("ACCESS_CONTROL_ALLOW_ORIGIN_HEADER") == raw
+        assert config.ACCESS_CONTROL_ALLOW_ORIGIN_HEADER == raw
+
+    @pytest.mark.parametrize("default", [0, 0.0, False, [], (), set(), {}])
+    def test_empty_value_stays_empty_string(self, monkeypatch, default):
+        Config.define("SETTING", default, "Setting.")
+        Config.allow_environment_variables()
+        monkeypatch.setenv("SETTING", "")
+        config = Config()
+
+        assert config.get("SETTING") == ""
+        assert config.SETTING == ""
+
+    @pytest.mark.parametrize(
+        "default, raw",
+        [
+            (0, "abc"),
+            (0.0, "abc"),
+            ([], "a.com,b.com"),
+            ([], '{"foo": "bar"}'),
+            ({}, "[1, 2]"),
+            (set(), "[[1]]"),
+        ],
+    )
+    def test_invalid_value_raises_configuration_error(self, monkeypatch, default, raw):
+        Config.define("SETTING", default, "Setting.")
+        Config.allow_environment_variables(prefix="MYAPP_")
+        monkeypatch.setenv("MYAPP_SETTING", raw)
+        config = Config()
+
+        with pytest.raises(ConfigurationError, match="MYAPP_SETTING") as error:
+            config.get("SETTING")
+
+        assert raw not in str(error.value) or raw == ""
+        assert error.value.__suppress_context__
+
+
 def test_reload_keeps_default_defined_after_load():
     config = Config.load(fix("sample.conf"), defaults={"PROPER": "PROPERVALUE"})
 
