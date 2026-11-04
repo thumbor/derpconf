@@ -17,7 +17,13 @@ from os.path import abspath, dirname, join
 
 import pytest
 
-from derpconf.config import Config, ConfigurationError
+from derpconf.config import (
+    Config,
+    ConfigurationError,
+    format_value,
+    generate_config,
+    verify_config,
+)
 
 
 def fix(name):
@@ -460,3 +466,141 @@ def test_get_config_text_formats_tuple_default():
         "",
         "",
     ]
+
+
+class TestVerify:
+    def test_none_path_returns_nothing(self):
+        assert not Config.verify(None)
+
+    def test_missing_file_raises_configuration_error(self):
+        with pytest.raises(ConfigurationError):
+            Config.verify(fix("not-existent.conf"))
+
+    def test_key_set_in_file_is_not_listed(self):
+        Config.define("FOO", "default", "set in sample.conf")
+        Config.define("MISSING", "default", "not in sample.conf")
+
+        assert Config.verify(fix("sample.conf")) == [("MISSING", "default")]
+
+
+def test_items_merges_defaults_and_file_values():
+    Config.define("DEFINED", "defined", "from define")
+    Config.define("OVERRIDDEN", "defined", "overridden by load defaults")
+    Config.define("FOO", "defined", "overridden by the file")
+
+    config = Config.load(
+        fix("sample.conf"),
+        defaults={
+            "OVERRIDDEN": "load",
+            "FOO": "load",
+        },
+    )
+
+    assert config.items["DEFINED"] == "defined"
+    assert config.items["OVERRIDDEN"] == "load"
+    assert config.items["FOO"] == "bar"
+
+
+def test_reload_without_file_does_nothing():
+    config = Config.load(None, defaults={"DEFAULT": "DEFAULTVALUE"})
+
+    config.reload()
+
+    assert config.DEFAULT == "DEFAULTVALUE"
+
+
+class TestGet:
+    @pytest.fixture
+    def config(self):
+        return Config.load(fix("sample.conf"))
+
+    def test_returns_value(self, config):
+        assert config.get("FOO") == "bar"
+
+    def test_returns_default_for_missing_key(self, config):
+        assert config.get("MISSING", "fallback") == "fallback"
+
+    def test_returns_none_without_default(self, config):
+        assert config.get("MISSING") is None
+
+
+def test_get_description_of_missing_key_raises_key_error():
+    config = Config.load(fix("sample.conf"))
+
+    with pytest.raises(KeyError):
+        config.get_description("MISSING")
+
+
+def test_get_config_text_lists_aliases():
+    Config.define("STORAGE", "file", "Storage backend", "Storage")
+    Config.alias("OLD_STORAGE", "STORAGE")
+    Config.alias("OLDER_STORAGE", "STORAGE")
+
+    assert "## Aliases: OLD_STORAGE, OLDER_STORAGE\n" in Config.get_config_text()
+
+
+class TestVerifyConfig:
+    def test_prints_missing_keys_with_defaults(self, capsys):
+        Config.define("SOME_KEY", "default", "test key")
+
+        verify_config(fix("missing.conf"))
+
+        assert capsys.readouterr().out == (
+            'Configuration "\033[94mSOME_KEY\033[0m" not found in file '
+            f'{fix("missing.conf")}. Using "\033[92mdefault\033[0m" instead.\n'
+        )
+
+    def test_prints_nothing_when_file_sets_every_key(self, capsys):
+        Config.define("FOO", "default", "test key")
+
+        verify_config(fix("sample.conf"))
+
+        assert capsys.readouterr().out == ""
+
+    def test_takes_path_from_argv(self, capsys, monkeypatch):
+        Config.define("SOME_KEY", "default", "test key")
+        monkeypatch.setattr(sys, "argv", ["verify", fix("missing.conf")])
+
+        verify_config()
+
+        assert "SOME_KEY" in capsys.readouterr().out
+
+    def test_without_path_or_argv_raises_value_error(self, monkeypatch):
+        monkeypatch.setattr(sys, "argv", ["verify"])
+
+        with pytest.raises(ValueError):
+            verify_config()
+
+
+def test_generate_config_prints_config_text(capsys):
+    Config.define("SOME_KEY", "default", "test key")
+
+    generate_config()
+
+    assert capsys.readouterr().out == f"{Config.get_config_text()}\n"
+
+
+class TestFormatValue:
+    def test_quotes_string(self):
+        assert format_value("text") == "'text'"
+
+    @pytest.mark.parametrize("value", [1, 1.5, True, None, {"key": "value"}])
+    def test_uses_str_for_other_scalars(self, value):
+        assert format_value(value) == str(value)
+
+    def test_formats_list_with_brackets(self):
+        assert format_value(["a", "b"]) == "[\n#    'a',\n#    'b',\n#]\n"
+
+    def test_indents_nested_tuple(self):
+        assert format_value((("a", 1), ["b"])).split("\n") == [
+            "(",
+            "#    (",
+            "#        'a',",
+            "#        1,",
+            "#    ),",
+            "#    [",
+            "#        'b',",
+            "#    ],",
+            "#)",
+            "",
+        ]
