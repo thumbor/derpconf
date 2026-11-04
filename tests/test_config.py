@@ -12,6 +12,7 @@ import importlib
 import os
 import subprocess
 import sys
+import traceback
 from collections import defaultdict
 from os.path import abspath, dirname, join
 
@@ -129,6 +130,65 @@ class TestLoadingDirectory:
 
     def test_ignores_lower_case_names(self, config):
         assert not hasattr(config, "baz")
+
+
+class TestExecutingFile:
+    def test_file_sees_its_own_path(self, tmp_path):
+        path = tmp_path / "sample.conf"
+        path.write_text("FILE = __file__\n", encoding="utf-8")
+
+        assert Config.load(path).FILE == str(path)
+
+    @pytest.mark.parametrize("operation", [Config.load, Config.verify])
+    @pytest.mark.parametrize(
+        "code, cause",
+        [
+            (b"FOO =\n", SyntaxError),
+            (b"FOO = undefined_name\n", NameError),
+            (b"import derpconf_missing_module\n", ModuleNotFoundError),
+            (b"# coment\xe1rio em latin-1\nFOO = 1\n", UnicodeDecodeError),
+        ],
+    )
+    def test_error_names_file_and_keeps_cause(self, tmp_path, operation, code, cause):
+        path = tmp_path / "broken.conf"
+        path.write_bytes(code)
+
+        with pytest.raises(ConfigurationError) as error:
+            operation(path)
+
+        assert str(error.value).startswith(
+            f"Error in configuration file {path}: {cause.__name__}: "
+        )
+        assert isinstance(error.value.__cause__, cause)
+
+    @pytest.mark.filterwarnings("error")
+    def test_traceback_points_at_failing_line(self, tmp_path):
+        path = tmp_path / "broken.conf"
+        path.write_text("FOO = 1\nBAR = undefined_name\n", encoding="utf-8")
+
+        with pytest.raises(ConfigurationError) as error:
+            Config.load(path)
+
+        frame = traceback.extract_tb(error.value.__cause__.__traceback__)[-1]
+        assert (frame.filename, frame.lineno) == (str(path), 2)
+
+    def test_directory_error_names_failing_file(self, tmp_path):
+        (tmp_path / "01-valid.conf").write_text("FOO = 1\n", encoding="utf-8")
+        (tmp_path / "02-broken.conf").write_text("BAR =\n", encoding="utf-8")
+
+        with pytest.raises(ConfigurationError, match="02-broken.conf: SyntaxError"):
+            Config.load(str(tmp_path))
+
+    def test_failed_reload_keeps_previous_values(self, tmp_path):
+        path = tmp_path / "sample.conf"
+        path.write_text("FOO = 1\n", encoding="utf-8")
+        config = Config.load(path)
+        path.write_text("FOO = 2\nraise ValueError('broken')\n", encoding="utf-8")
+
+        with pytest.raises(ConfigurationError, match="ValueError: broken"):
+            config.reload()
+
+        assert config.FOO == 1
 
 
 class TestSettingAnAlias:
