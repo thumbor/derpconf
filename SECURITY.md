@@ -74,10 +74,13 @@ consider the following:
 - `Config.allow_environment_variables()` applies to every `Config` instance in
   the process. Any environment variable whose name matches a setting
   overrides it, so enable it only when the process environment is trusted.
-- Values read from environment variables are always strings. A boolean
-  setting given as `False` through the environment is the non-empty string
-  `"False"`, which is truthy, so convert and validate security-sensitive
-  settings before relying on them.
+- Values read from environment variables are converted to the type of the
+  `Config.define` default, so `DEBUG=False` gives `False` when `DEBUG` has a
+  boolean default. The value stays a string for settings defined with a
+  `None` or `str` default, settings that were never defined, the `defaults`
+  passed to `Config.load`, an empty value, and a boolean setting given a word
+  it does not recognize, such as `disabled`. Any non-empty string is truthy,
+  so convert and validate security-sensitive settings before relying on them.
 - Do not use secrets as default values in `Config.define`. `generate_config`
   writes every default into the sample file and `verify_config` prints the
   default used for each missing key.
