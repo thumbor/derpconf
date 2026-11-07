@@ -13,7 +13,7 @@ import logging
 import os
 import sys
 from collections import defaultdict
-from os.path import abspath, dirname, exists, isdir, join
+from os.path import abspath, exists, isdir, join
 from textwrap import fill
 from types import ModuleType
 
@@ -404,14 +404,3 @@ def format_value(value):
         return format_tuple(value)
 
     return str(value)
-
-
-if __name__ == "__main__":
-    Config.define("foo", "fooval", "Foo is always a foo", "FooValues")
-    Config.define("bar", "barval", "Bar is not always a bar", "BarValues")
-    Config.define("baz", "bazval", "Baz is never a bar", "BarValues")
-
-    config_sample = Config.get_config_text()
-    sys.stdout.write(f"{config_sample}\n")  # or just call generate_config()
-
-    verify_config(abspath(join(dirname(__file__), "../tests/fixtures/missing.conf")))
