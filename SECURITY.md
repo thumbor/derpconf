@@ -62,12 +62,17 @@ derpconf configuration files are Python code. `Config.load`, `reload`,
 the process that loads them. When using derpconf in production, please
 consider the following:
 
-- Only load configuration from trusted locations. Never build the path passed
-  to `Config.load` or `verify_config` from user input.
+- Only load configuration from trusted locations. Never build the `path`,
+  `conf_name` or `lookup_paths` passed to `Config.load`, or the path passed
+  to `verify_config`, from user input. `conf_name` is joined to each lookup
+  path without checks: a value containing `..` escapes the directory, and an
+  absolute value replaces it.
 - Restrict write access to configuration files and directories to the account
   that deploys the application. When the path is a directory, every `*.conf`
   file in it is executed in alphabetical order, so anyone who can create a
-  file there can run code in your application.
+  file there can run code in your application. Symbolic links are followed,
+  so a `*.conf` link in that directory executes the file it points to,
+  wherever that file lives.
 - Order `lookup_paths` from most to least trusted. `Config.load` uses the
   first directory that contains `conf_name`, so a writable working directory
   listed first can shadow the file under `/etc`.
