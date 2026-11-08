@@ -39,8 +39,9 @@ sample file from the registered defaults. The whole library lives in
   `pyproject.toml` points pytest at `tests/`, and `pythonpath` makes the
   working tree win over any derpconf installed in the virtualenv. Coverage is
   reported but no threshold is enforced.
-- Fixtures live in `tests/fixtures/`. `conf.d/` covers directory loading, and
-  its `.bak` file checks that only `*.conf` files are executed.
+- Fixtures live in `tests/fixtures/`. `conf.d/` covers directory loading: its
+  `.bak` file checks that only `*.conf` files are executed, and its
+  `04-dir.conf/` subdirectory that directories are never read.
 - `Config` keeps defaults, groups, aliases and the environment variable flag
   and prefix in class attributes. The autouse `isolated_config` fixture gives
   each test fresh ones, so tests may call `Config.define`, `Config.alias` and
@@ -127,7 +128,10 @@ Makefile                 ← setup, test, lint, pre-commit
 - Files are read as UTF-8, whatever the locale.
 - A directory loads every `*.conf` file in it in sorted order, later files
   overriding earlier ones. `config_folder` keeps the directory and
-  `config_file` ends up pointing at the last file.
+  `config_file` ends up pointing at the last file. Subdirectories are
+  skipped whatever their names. Symlinks are followed: a link to a file is
+  loaded, a link to a directory is skipped, and a dangling link raises
+  `ConfigurationError`.
 - `load` records the path and calls `reload()`, which re-reads
   `config_folder` when set and `config_file` otherwise, taken from the
   instance itself and never from the environment or the defaults, since
