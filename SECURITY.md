@@ -79,8 +79,11 @@ consider the following:
   first directory that contains `conf_name`, so a writable working directory
   listed first can shadow the file under `/etc`.
 - `Config.allow_environment_variables()` applies to every `Config` instance in
-  the process. Any environment variable whose name matches a setting
-  overrides it, so enable it only when the process environment is trusted.
+  the process. Any environment variable whose name matches an uppercase
+  setting overrides it, so enable it only when the process environment is
+  trusted. Lowercase names, internals such as `config_file` and `reload`
+  among them, and attributes of the class are never read from the
+  environment.
 - Values read from environment variables are converted to the type of the
   `Config.define` default, so `DEBUG=False` gives `False` when `DEBUG` has a
   boolean default. The value stays a string for settings defined with a

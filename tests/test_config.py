@@ -7,6 +7,8 @@
 # http://www.opensource.org/licenses/mit-license
 # Copyright (c) 2012 globo.com timehome@corp.globo.com
 
+# pylint: disable=too-many-lines
+
 import importlib
 import os
 import subprocess
@@ -414,6 +416,78 @@ class TestEnvironmentVariables:
         monkeypatch.setenv("FOO", "baz")
 
         assert config.FOO == "baz"
+
+    def test_validates_presence_of_accepts_setting_from_environment(self, monkeypatch):
+        Config.allow_environment_variables()
+        monkeypatch.setenv("SECRET_KEY", "secret")
+
+        Config.load(fix("missing.conf")).validates_presence_of("SECRET_KEY")
+
+
+class TestEnvironmentVariablesOnlyReachSettings:
+    @pytest.mark.parametrize("prefix", ["", "MYAPP_"])
+    def test_config_file_does_not_redirect_reload(self, monkeypatch, tmp_path, prefix):
+        (tmp_path / "app.conf").write_text("FOO = 1\n")
+        (tmp_path / "evil.conf").write_text("PWNED = True\n")
+        config = Config.load(str(tmp_path / "app.conf"))
+        Config.allow_environment_variables(prefix=prefix)
+        monkeypatch.setenv(f"{prefix}config_file", str(tmp_path / "evil.conf"))
+
+        config.reload()
+
+        assert not hasattr(config, "PWNED")
+        assert config.config_file == str(tmp_path / "app.conf")
+
+    @pytest.mark.parametrize(
+        "name",
+        [
+            "get",
+            "reload",
+            "items",
+            "defaults",
+            "_items",
+            "class_defaults",
+            "config_file",
+            "__class__",
+            "__dict__",
+        ],
+    )
+    def test_internal_names_are_not_read(self, monkeypatch, name):
+        config = Config.load(fix("sample.conf"), defaults={"PROPER": "value"})
+        Config.allow_environment_variables()
+        monkeypatch.setenv(name, "masked")
+
+        config.reload()
+        config["NEW"] = "new"
+
+        assert getattr(config, name) != "masked"
+        assert config.get("FOO") == "bar"
+        assert config.items["PROPER"] == "value"
+        assert config.NEW == "new"
+
+    def test_lowercase_setting_is_not_read(self, monkeypatch):
+        Config.define("some_key", "default", "Some key.")
+        Config.allow_environment_variables()
+        monkeypatch.setenv("some_key", "environment")
+
+        assert Config().some_key == "default"
+
+    def test_underscore_is_not_read(self, monkeypatch):
+        config = Config.load(None, defaults={"_": "default"})
+        Config.allow_environment_variables()
+        monkeypatch.setenv("_", "/usr/bin/python")
+
+        assert getattr(config, "_") == "default"
+
+    def test_uppercase_class_attribute_is_not_read(self, monkeypatch):
+        class CustomConfig(Config):
+            def RELOAD_ALL(self):  # pylint: disable=invalid-name
+                return "method"
+
+        Config.allow_environment_variables()
+        monkeypatch.setenv("RELOAD_ALL", "masked")
+
+        assert CustomConfig().RELOAD_ALL() == "method"
 
 
 class TestEnvironmentVariableTypes:
