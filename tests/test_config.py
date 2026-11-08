@@ -499,6 +499,96 @@ def test_reload_reads_file_again(tmp_path):
     assert config.FOO == "baz"
 
 
+def test_reload_drops_setting_removed_from_file(tmp_path):
+    Config.define("BAR", "default", "removed from the file")
+    path = tmp_path / "reload.conf"
+    path.write_text("FOO = 1\nBAR = 2\nBAZ = 3\n", encoding="utf-8")
+    config = Config.load(path)
+
+    path.write_text("FOO = 1\n", encoding="utf-8")
+    config.reload()
+
+    assert config.FOO == 1
+    assert config.BAR == "default"
+    assert config.items["BAR"] == "default"
+    assert not hasattr(config, "BAZ")
+    assert "BAZ" not in config.items
+
+
+def test_reload_drops_alias_removed_from_file(tmp_path):
+    Config.define("NEW", "default", "set through its alias")
+    Config.alias("OLD", "NEW")
+    path = tmp_path / "reload.conf"
+    path.write_text("OLD = 1\n", encoding="utf-8")
+    config = Config.load(path)
+
+    path.write_text("FOO = 1\n", encoding="utf-8")
+    config.reload()
+
+    assert config.NEW == "default"
+    assert "OLD" not in config.items
+
+
+def test_reload_keeps_setting_assigned_in_code(tmp_path):
+    path = tmp_path / "reload.conf"
+    path.write_text("FOO = 1\n", encoding="utf-8")
+    config = Config.load(path)
+    config["EXTRA"] = "code"
+
+    config.reload()
+
+    assert config.EXTRA == "code"
+
+
+class TestReloadingDirectory:
+    @pytest.fixture
+    def conf_dir(self, tmp_path):
+        (tmp_path / "01-first.conf").write_text("FOO = 1\n", encoding="utf-8")
+        (tmp_path / "02-second.conf").write_text("BAR = 2\n", encoding="utf-8")
+
+        return tmp_path
+
+    def test_reads_every_file_again(self, conf_dir):
+        config = Config.load(str(conf_dir))
+
+        (conf_dir / "01-first.conf").write_text("FOO = 10\n", encoding="utf-8")
+        config.reload()
+
+        assert config.FOO == 10
+        assert config.BAR == 2
+        assert config.config_file == str(conf_dir / "02-second.conf")
+
+    def test_picks_up_added_file(self, conf_dir):
+        config = Config.load(str(conf_dir))
+
+        (conf_dir / "03-third.conf").write_text("BAR = 3\n", encoding="utf-8")
+        config.reload()
+
+        assert config.BAR == 3
+        assert config.config_file == str(conf_dir / "03-third.conf")
+
+    def test_drops_settings_of_removed_file(self, conf_dir):
+        config = Config.load(str(conf_dir))
+
+        (conf_dir / "02-second.conf").unlink()
+        config.reload()
+
+        assert config.FOO == 1
+        assert not hasattr(config, "BAR")
+
+    def test_failure_keeps_values_of_every_file(self, conf_dir):
+        config = Config.load(str(conf_dir))
+
+        (conf_dir / "01-first.conf").write_text("FOO = 10\n", encoding="utf-8")
+        (conf_dir / "02-second.conf").write_text("BAR =\n", encoding="utf-8")
+
+        with pytest.raises(ConfigurationError, match="02-second.conf: SyntaxError"):
+            config.reload()
+
+        assert config.FOO == 1
+        assert config.BAR == 2
+
+
 @pytest.mark.parametrize(
     "default",
     [
