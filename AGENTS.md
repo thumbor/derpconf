@@ -101,6 +101,7 @@ tests/
 pyproject.toml           ← package metadata, the `dev` dependency group,
                            black and isort settings
 uv.lock                  ← locked versions of the `dev` group
+MANIFEST.in              ← sdist extras: README, tests and their fixtures
 Makefile                 ← setup, test, lint, pre-commit
 .pre-commit-config.yaml  ← pre-commit hooks: black, isort, flake8, pylint
 .flake8                  ← flake8 settings
@@ -144,6 +145,13 @@ Makefile                 ← setup, test, lint, pre-commit
 ## Contribution guidelines
 
 - Keep changes focused and add or update a test whenever behavior changes.
+- The sdist ships `tests/` with `tests/fixtures/`, as thumbor's does, so
+  downstream packagers can run the suite from it. `MANIFEST.in` lists every
+  `.py` under `tests/` and everything under `tests/fixtures/`; a test helper
+  that is not a `.py` file, or a fixture outside that directory, needs its
+  own line there. The release workflow runs the suite from the unpacked sdist
+  on every pull request, so a file left out fails CI. Locally, check with
+  `uv build --sdist` and `tar tzf dist/*.tar.gz`.
 - thumbor pins `derpconf>=0.8.4,<1.0.0` and calls `Config.define`,
   `Config.alias`, `Config.load`, `Config.allow_environment_variables`,
   `validates_presence_of` and `generate_config`. Treat their behavior as
@@ -159,9 +167,10 @@ Makefile                 ← setup, test, lint, pre-commit
 - `.github/workflows/release.yml` publishes releases. A maintainer bumps
   `__version__` in `derpconf/version.py` in a `Release X.Y.Z` commit, merges
   it into `master` and pushes an `X.Y.Z` tag, without a `v` prefix, at that
-  commit. The workflow builds the sdist and wheel with `uv build`, fails when
-  the tag does not match `__version__`, and uploads both to PyPI with trusted
-  publishing. It also builds, without uploading, on every pull request to
+  commit. The workflow builds the sdist and wheel with `uv build`, runs the
+  test suite from the unpacked sdist, fails when the tag does not match
+  `__version__`, and uploads both to PyPI with trusted publishing. It also
+  builds and tests the sdist, without uploading, on every pull request to
   `master`. Do not bump the version in feature or fix changes.
 - New work targets `master`.
 
