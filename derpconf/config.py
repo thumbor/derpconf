@@ -95,6 +95,13 @@ class Config:
         cls.class_aliased_items[new_key] = aliased_key
 
     @classmethod
+    def _resolve_alias(cls, name):
+        while name in cls.class_aliased_items:
+            name = cls.class_aliased_items[name]
+
+        return name
+
+    @classmethod
     def get_conf_file(cls, conf_name, lookup_paths):
         for conf_path in lookup_paths:
             conf_path_file = abspath(join(conf_path, conf_name))
@@ -219,9 +226,9 @@ class Config:
         return values
 
     def reload(self):
-        path = getattr(self, "config_folder", None) or getattr(
-            self, "config_file", None
-        )
+        # Not getattr: it also reads the environment and the defaults, and
+        # neither may choose the file that gets executed.
+        path = self.__dict__.get("config_folder") or self.__dict__.get("config_file")
 
         if path is None:
             return
@@ -231,7 +238,7 @@ class Config:
 
         for name in self._loaded_names - names:
             self._items.pop(name, None)
-            self.__dict__.pop(self.class_aliased_items.get(name, name), None)
+            self.__dict__.pop(self._resolve_alias(name), None)
 
         for file, settings in files:
             self.config_file = file  # pylint: disable=attribute-defined-outside-init
@@ -290,9 +297,7 @@ class Config:
 
     @classmethod
     def parse_environment_value(cls, name, env_name, value):
-        while name in cls.class_aliased_items:
-            name = cls.class_aliased_items[name]
-
+        name = cls._resolve_alias(name)
         default_type = type(cls.class_defaults.get(name))
         parser = ENVIRONMENT_PARSERS.get(default_type)
 

@@ -129,7 +129,9 @@ Makefile                 ← setup, test, lint, pre-commit
   overriding earlier ones. `config_folder` keeps the directory and
   `config_file` ends up pointing at the last file.
 - `load` records the path and calls `reload()`, which re-reads
-  `config_folder` when set and `config_file` otherwise. It executes every
+  `config_folder` when set and `config_file` otherwise, taken from the
+  instance itself and never from the environment or the defaults, since
+  either would choose which file gets executed. It executes every
   file before changing the object, so a failure leaves it as it was, then
   drops the settings the previous read set and the new one does not, and
   applies the rest in file order.

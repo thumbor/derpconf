@@ -529,6 +529,38 @@ def test_reload_drops_alias_removed_from_file(tmp_path):
     assert "OLD" not in config.items
 
 
+def test_reload_drops_setting_set_through_alias_chain(tmp_path):
+    Config.define("NEW", "default", "set through an alias of an alias")
+    Config.alias("OLDEST", "OLD")
+    Config.alias("OLD", "NEW")
+    path = tmp_path / "reload.conf"
+    path.write_text("OLDEST = 1\n", encoding="utf-8")
+    config = Config.load(path)
+
+    path.write_text("FOO = 1\n", encoding="utf-8")
+    config.reload()
+
+    assert config.NEW == "default"
+
+
+@pytest.mark.parametrize("name", ["config_file", "config_folder"])
+def test_environment_does_not_choose_file_to_load(tmp_path, monkeypatch, name):
+    path = tmp_path / "real.conf"
+    path.write_text('FOO = "real"\n', encoding="utf-8")
+    other = tmp_path / "other"
+    other.mkdir()
+    (other / "other.conf").write_text('FOO = "other"\n', encoding="utf-8")
+    target = other / "other.conf" if name == "config_file" else other
+    monkeypatch.setenv(name, str(target))
+    Config.allow_environment_variables()
+
+    config = Config.load(path)
+    assert config.FOO == "real"
+
+    config.reload()
+    assert config.FOO == "real"
+
+
 def test_reload_keeps_setting_assigned_in_code(tmp_path):
     path = tmp_path / "reload.conf"
     path.write_text("FOO = 1\n", encoding="utf-8")
