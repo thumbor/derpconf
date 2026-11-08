@@ -83,7 +83,7 @@ sample file from the registered defaults. The whole library lives in
   `uv run --no-sync` so they use `.venv`. `make pre-commit-install`
   installs the hook once per clone and `make pre-commit` runs it on every
   file.
-- Non-empty modules start with the shebang, the `coding: utf-8` line and the
+- Non-empty modules start with the `coding: utf-8` line and the
   MIT license header (`# derpconf`, repository URL, license link, copyright).
   Copy it into new modules.
 
