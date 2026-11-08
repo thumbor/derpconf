@@ -68,7 +68,8 @@ the file and the original exception as its `__cause__`. Inside the file,
 When you read a setting, derpconf checks, in order:
 
 1. an environment variable with the same name, after the prefix if you gave
-   one, if you called `Config.allow_environment_variables()`;
+   one, if you called `Config.allow_environment_variables()` and the name is
+   uppercase;
 2. the value assigned in the loaded configuration file;
 3. the `defaults` dict passed to `Config.load`;
 4. the default declared with `Config.define`.
@@ -132,8 +133,11 @@ conf = Config.load("/etc/myapp.conf")
 $ PORT=9100 python app.py
 ```
 
-Any environment variable whose name matches a setting now overrides it. The
-value is converted to the type of the default given to `Config.define`:
+Any environment variable whose name matches a setting now overrides it.
+Only uppercase names that are not attributes of the class are looked up,
+so a lowercase setting, the `_` that shells export, and internals such as
+`config_file`, `get` or `reload` never come from the environment. The value
+is converted to the type of the default given to `Config.define`:
 
 | Default type | Accepted values |
 | --- | --- |
