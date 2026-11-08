@@ -144,20 +144,27 @@ class Config:
     @classmethod
     def _read_settings(cls, path):
         if not isdir(path):
-            namespace = cls._execute(path)
-            settings = {
-                name: value for name, value in namespace.items() if name.upper() == name
-            }
-
-            return [(path, settings)]
+            return [(path, cls._read_file(path))]
 
         files = []
 
-        for file in sorted(os.listdir(path)):
-            if file.endswith(".conf"):
-                files.extend(cls._read_settings(path + os.sep + file))
+        for name in sorted(os.listdir(path)):
+            file = path + os.sep + name
+
+            # Not isfile: a dangling *.conf symlink must keep failing the load
+            # instead of silently dropping the settings it was meant to hold.
+            if name.endswith(".conf") and not isdir(file):
+                files.append((file, cls._read_file(file)))
 
         return files
+
+    @classmethod
+    def _read_file(cls, path):
+        namespace = cls._execute(path)
+
+        return {
+            name: value for name, value in namespace.items() if name.upper() == name
+        }
 
     @staticmethod
     def _execute(path):

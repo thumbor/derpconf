@@ -136,6 +136,41 @@ class TestLoadingDirectory:
     def test_ignores_lower_case_names(self, config):
         assert not hasattr(config, "baz")
 
+    def test_skips_subdirectory_named_like_conf_file(self, config):
+        assert not hasattr(config, "NESTED")
+        assert config.config_file == fix("conf.d/02-sample.conf")
+
+
+class TestLoadingDirectoryWithSymlinks:
+    @pytest.fixture
+    def outside(self, tmp_path):
+        (tmp_path / "outside").mkdir()
+        (tmp_path / "outside" / "real.conf").write_text("FOO = 1\n", encoding="utf-8")
+
+        return tmp_path / "outside"
+
+    @pytest.fixture
+    def conf_dir(self, tmp_path):
+        (tmp_path / "conf.d").mkdir()
+
+        return tmp_path / "conf.d"
+
+    def test_follows_link_to_file(self, conf_dir, outside):
+        (conf_dir / "01-link.conf").symlink_to(outside / "real.conf")
+
+        assert Config.load(str(conf_dir)).FOO == 1
+
+    def test_skips_link_to_directory(self, conf_dir, outside):
+        (conf_dir / "01-link.conf").symlink_to(outside, target_is_directory=True)
+
+        assert not hasattr(Config.load(str(conf_dir)), "FOO")
+
+    def test_dangling_link_raises_configuration_error(self, conf_dir, outside):
+        (conf_dir / "01-link.conf").symlink_to(outside / "missing.conf")
+
+        with pytest.raises(ConfigurationError, match="01-link.conf: FileNotFoundError"):
+            Config.load(str(conf_dir))
+
 
 class TestExecutingFile:
     def test_file_sees_its_own_path(self, tmp_path):
