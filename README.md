@@ -112,6 +112,8 @@ loaded in alphabetical order, and later files override earlier ones:
   20-production.conf    # wins for every setting both files assign
 ```
 
+Subdirectories are skipped, even when their names end in `.conf`.
+
 ### Per-load defaults
 
 ```python
