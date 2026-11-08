@@ -126,8 +126,15 @@ Makefile                 ← setup, test, lint, pre-commit
   `__spec__ = None` makes linecache warn on Python 3.15.
 - Files are read as UTF-8, whatever the locale.
 - A directory loads every `*.conf` file in it in sorted order, later files
-  overriding earlier ones. `config_file` ends up pointing at the last file,
-  so `reload()` after a directory load re-executes only that file.
+  overriding earlier ones. `config_folder` keeps the directory and
+  `config_file` ends up pointing at the last file.
+- `load` records the path and calls `reload()`, which re-reads
+  `config_folder` when set and `config_file` otherwise, taken from the
+  instance itself and never from the environment or the defaults, since
+  either would choose which file gets executed. It executes every
+  file before changing the object, so a failure leaves it as it was, then
+  drops the settings the previous read set and the new one does not, and
+  applies the rest in file order.
 - Reading a setting checks, in order: the environment (only after
   `allow_environment_variables()`, with its `prefix` prepended to the
   name), values from the loaded files, the `defaults` passed to `load`, the

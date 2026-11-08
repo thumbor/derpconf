@@ -169,10 +169,12 @@ it, and plain names override settings again.
 ## Reloading
 
 `conf.reload()` executes the file `conf` was loaded from again, picking up
-values that changed on disk. After loading a directory, it re-reads only the
-last file. If the file now fails, `reload()` raises `ConfigurationError` and
-keeps the values it had. You do not need to reload to see defaults declared
-later.
+values that changed on disk. After loading a directory, it re-reads every
+`*.conf` file in it, including files added since. A setting that is no longer
+in any file falls back to its default, or is gone when it has none, while
+values assigned in code to names the files never set are kept. If a file now
+fails, `reload()` raises `ConfigurationError` and keeps every value it had.
+You do not need to reload to see defaults declared later.
 
 ## Renaming settings
 

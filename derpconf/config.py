@@ -95,6 +95,13 @@ class Config:
         cls.class_aliased_items[new_key] = aliased_key
 
     @classmethod
+    def _resolve_alias(cls, name):
+        while name in cls.class_aliased_items:
+            name = cls.class_aliased_items[name]
+
+        return name
+
+    @classmethod
     def get_conf_file(cls, conf_name, lookup_paths):
         for conf_path in lookup_paths:
             conf_path_file = abspath(join(conf_path, conf_name))
@@ -125,30 +132,32 @@ class Config:
 
         conf = cls(defaults=defaults)
 
-        return cls.__load_from_path(conf, path)
-
-    @classmethod
-    def __load_from_path(cls, conf, path):
         if isdir(path):
-            conf.config_folder = path
-            files = sorted(os.listdir(path))
+            conf.config_folder = path  # pylint: disable=attribute-defined-outside-init
+        else:
+            conf.config_file = path  # pylint: disable=attribute-defined-outside-init
 
-            for file in files:
-                if file.endswith(".conf"):
-                    filepath = path + os.sep + file
-                    conf = Config.__load_from_path(conf, filepath)
-
-            return conf
-
-        namespace = cls._execute(path)
-        conf.config_file = path
-
-        for name, value in namespace.items():
-            if name.upper() == name:
-                conf._items[name] = value  # pylint: disable=protected-access
-                setattr(conf, name, value)
+        conf.reload()
 
         return conf
+
+    @classmethod
+    def _read_settings(cls, path):
+        if not isdir(path):
+            namespace = cls._execute(path)
+            settings = {
+                name: value for name, value in namespace.items() if name.upper() == name
+            }
+
+            return [(path, settings)]
+
+        files = []
+
+        for file in sorted(os.listdir(path)):
+            if file.endswith(".conf"):
+                files.extend(cls._read_settings(path + os.sep + file))
+
+        return files
 
     @staticmethod
     def _execute(path):
@@ -196,6 +205,7 @@ class Config:
             self.defaults = kw["defaults"]
 
         self._items = kw
+        self._loaded_names = set()
 
         for key, value in kw.items():
             setattr(self, key, value)
@@ -216,12 +226,28 @@ class Config:
         return values
 
     def reload(self):
-        cfg = getattr(self, "config_file", None)
+        # Not getattr: it also reads the environment and the defaults, and
+        # neither may choose the file that gets executed.
+        path = self.__dict__.get("config_folder") or self.__dict__.get("config_file")
 
-        if cfg is None:
+        if path is None:
             return
 
-        self.__load_from_path(self, cfg)
+        files = self._read_settings(path)
+        names = {name for _, settings in files for name in settings}
+
+        for name in self._loaded_names - names:
+            self._items.pop(name, None)
+            self.__dict__.pop(self._resolve_alias(name), None)
+
+        for file, settings in files:
+            self.config_file = file  # pylint: disable=attribute-defined-outside-init
+
+            for name, value in settings.items():
+                self._items[name] = value
+                setattr(self, name, value)
+
+        self._loaded_names = names
 
     def validates_presence_of(self, *args):
         source = getattr(self, "config_file", "your configuration file")
@@ -271,9 +297,7 @@ class Config:
 
     @classmethod
     def parse_environment_value(cls, name, env_name, value):
-        while name in cls.class_aliased_items:
-            name = cls.class_aliased_items[name]
-
+        name = cls._resolve_alias(name)
         default_type = type(cls.class_defaults.get(name))
         parser = ENVIRONMENT_PARSERS.get(default_type)
 
