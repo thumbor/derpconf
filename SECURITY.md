@@ -71,10 +71,11 @@ consider the following:
   that deploys the application. When the path is a directory, every `*.conf`
   file in it is executed in alphabetical order, on load and again on every
   `reload()`, so anyone who can create a file there can run code in your
-  application. Subdirectories are skipped, even when their names end in
-  `.conf`. Symbolic links are followed, so a `*.conf` link in that directory
-  executes the file it points to, wherever that file lives, while a link to a
-  directory is skipped like any other subdirectory.
+  application. Names that start with a dot are skipped, and so is anything
+  that is not a regular file, such as a subdirectory or a named pipe, even
+  when its name ends in `.conf`. Symbolic links are followed, so a `*.conf`
+  link in that directory executes the file it points to, wherever that file
+  lives, while a link to a directory or to a special file is skipped.
 - Order `lookup_paths` from most to least trusted. `Config.load` uses the
   first directory that contains `conf_name`, so a writable working directory
   listed first can shadow the file under `/etc`.
