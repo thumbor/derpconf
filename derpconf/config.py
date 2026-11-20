@@ -77,6 +77,9 @@ class Config:
     class_aliased_items = {}
     _allow_environment_variables = False
     _environment_variables_prefix = ""
+    _instance_state = frozenset(
+        {"defaults", "_items", "_loaded_names", "config_file", "config_folder"}
+    )
 
     @classmethod
     def define(cls, key, value, description, group="General"):
@@ -96,7 +99,11 @@ class Config:
 
     @classmethod
     def _resolve_alias(cls, name):
-        while name in cls.class_aliased_items:
+        seen = set()
+
+        # alias() can be led into a cycle, which must not loop here forever.
+        while name in cls.class_aliased_items and name not in seen:
+            seen.add(name)
             name = cls.class_aliased_items[name]
 
         return name
@@ -209,9 +216,7 @@ class Config:
         return not_found
 
     def __init__(self, **kw):
-        if "defaults" in kw:
-            self.defaults = kw["defaults"]
-
+        self.defaults = dict(kw.pop("defaults", None) or {})
         self._items = kw
         self._loaded_names = set()
 
@@ -220,16 +225,28 @@ class Config:
 
     @property
     def items(self):
+        # pylint: disable=protected-access
+        cls = type(self)
+        state = object.__getattribute__(self, "__dict__")
+        inherited = [*cls.class_defaults, *state.get("defaults", {})]
         values = {}
 
-        for key, value in self.class_defaults.items():
-            values[key] = value
+        for name in dict.fromkeys([*map(cls._resolve_alias, inherited), *state]):
+            # Reading such a name never gives a setting: it is no string, or
+            # Config uses it for itself, in the instance or in the class, as it
+            # does items.
+            if (
+                not isinstance(name, str)
+                or name in cls._instance_state
+                or hasattr(Config, name)
+            ):
+                continue
 
-        for key, value in self.defaults.items():
-            values[key] = value
-
-        for key, value in self._items.items():
-            values[key] = value
+            try:
+                values[name] = getattr(self, name)
+            except AttributeError:
+                # A default stored under an alias is never read.
+                pass
 
         return values
 

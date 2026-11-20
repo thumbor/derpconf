@@ -7,6 +7,8 @@
 # http://www.opensource.org/licenses/mit-license
 # Copyright (c) 2012 globo.com timehome@corp.globo.com
 
+# pylint: disable=too-many-lines
+
 import importlib
 import os
 import subprocess
@@ -88,6 +90,16 @@ class TestLoading:
         Config.load(None).defaults["LEAKED"] = "value"
 
         assert not hasattr(Config.load(None), "LEAKED")
+
+    def test_defaults_are_copied_from_the_caller(self):
+        defaults = {"PROPER": "PROPERVALUE"}
+        config = Config.load(None, defaults=defaults)
+
+        config.defaults["ADDED"] = "by the config"
+        defaults["LATE"] = "by the caller"
+
+        assert defaults == {"PROPER": "PROPERVALUE", "LATE": "by the caller"}
+        assert config.defaults == {"PROPER": "PROPERVALUE", "ADDED": "by the config"}
 
     # six imports importlib.util as a side effect; load must not rely on it.
     def test_does_not_need_importlib_util(self, monkeypatch):
@@ -301,6 +313,16 @@ class TestAliasOfAlias:
 
     def test_sets_outer_alias(self, config):
         assert config.STORAGE_ALIAS_ALIAS == "z"
+
+
+def test_alias_cycle_does_not_hang_a_read_from_the_environment(monkeypatch):
+    Config.alias("FIRST", "SECOND")
+    Config.alias("SECOND", "THIRD")
+    Config.alias("THIRD", "FIRST")
+    Config.allow_environment_variables()
+    monkeypatch.setenv("FIRST", "value")
+
+    assert Config().FIRST == "value"
 
 
 def test_verify_lists_keys_missing_from_file():
@@ -836,6 +858,94 @@ def test_items_merges_defaults_and_file_values():
     assert config.items["DEFINED"] == "defined"
     assert config.items["OVERRIDDEN"] == "load"
     assert config.items["FOO"] == "bar"
+
+
+class TestItems:
+    @pytest.mark.parametrize("kwargs", [{}, {"defaults": None}])
+    def test_works_without_defaults(self, kwargs):
+        Config.define("FOO", "defined", "from define")
+
+        assert Config(**kwargs).items == {"FOO": "defined"}
+
+    def test_leaves_out_instance_state(self):
+        config = Config.load(fix("conf.d"), defaults={"PROPER": "PROPERVALUE"})
+
+        assert config.items == {
+            "PROPER": "PROPERVALUE",
+            "FOO": "override",
+            "NEW": "thing",
+        }
+
+    def test_lists_alias_under_final_name(self, tmp_path):
+        Config.define("NEW", "default", "new name")
+        Config.alias("OLD", "NEW")
+        path = tmp_path / "alias.conf"
+        path.write_text('OLD = "file"\n', encoding="utf-8")
+
+        assert Config.load(str(path)).items == {"NEW": "file"}
+
+    def test_reads_environment(self, monkeypatch):
+        Config.define("PORT", 8888, "typed by its default")
+        Config.allow_environment_variables()
+        monkeypatch.setenv("PORT", "9000")
+
+        assert Config().items == {"PORT": 9000}
+
+    def test_follows_value_assigned_after_load(self):
+        config = Config.load(fix("sample.conf"))
+        config["FOO"] = "assigned"
+
+        assert config.items == {"FOO": "assigned"}
+
+    def test_lists_setting_assigned_in_code(self):
+        config = Config.load(fix("sample.conf"))
+        config["EXTRA"] = "code"
+
+        assert config.items == {"FOO": "bar", "EXTRA": "code"}
+
+    def test_leaves_out_deleted_setting(self):
+        config = Config.load(fix("sample.conf"))
+        del config.FOO
+
+        assert "FOO" not in config.items
+
+    @pytest.mark.parametrize("name", ["items", "get", "config_file", 1])
+    def test_leaves_out_default_that_cannot_be_a_setting(self, name):
+        assert not Config(defaults={name: "value"}).items
+
+    @pytest.mark.parametrize("kwargs, port", [({}, 8000), ({"PORT": 9000}, 9000)])
+    def test_lists_setting_that_a_subclass_holds_too(self, kwargs, port):
+        class CustomConfig(Config):
+            PORT = 8000
+
+        Config.define("PORT", 8888, "declared too")
+
+        assert CustomConfig(**kwargs).items == {"PORT": port}
+
+    def test_keeps_instance_name_that_became_an_alias(self):
+        config = Config(OLD="first")
+        Config.define("NEW", "default", "new name")
+        Config.alias("OLD", "NEW")
+
+        assert config.items == {"NEW": "default", "OLD": "first"}
+
+    def test_leaves_out_alias_with_nothing_to_read(self):
+        Config.alias("OLD", "NEW")
+
+        assert not Config(defaults={"OLD": "never read"}).items
+
+    def test_lists_final_name_for_alias_in_defaults(self):
+        Config.define("NEW", "default", "new name")
+        Config.alias("OLD", "NEW")
+
+        assert Config(defaults={"OLD": "never read"}).items == {"NEW": "default"}
+
+    def test_accepts_instance_unpickled_from_older_version(self):
+        config = Config(FOO="bar")
+        # The state a pickle made by 0.8.4 restores: no defaults unless given.
+        del config.__dict__["defaults"]
+
+        assert config.items == {"FOO": "bar"}
 
 
 def test_reload_without_file_does_nothing():
