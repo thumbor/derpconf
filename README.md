@@ -149,7 +149,8 @@ conf = Config.load("/etc/myapp.conf")
 $ PORT=9100 python app.py
 ```
 
-Any environment variable whose name matches a setting now overrides it.
+Reading a setting now gives the environment variable of the same name when
+there is one, whether or not the name was declared with `Config.define`.
 Only uppercase names that are not attributes of the class are looked up,
 so a lowercase setting, the `_` that shells export, and internals such as
 `config_file`, `get` or `reload` never come from the environment. The value
@@ -185,6 +186,25 @@ Now `MYAPP_PORT` overrides `PORT`, and a plain `PORT` in the environment is
 ignored. Like the switch, the prefix applies to every `Config` in the process.
 Calling `Config.allow_environment_variables()` again without a prefix drops
 it, and plain names override settings again.
+
+A prefix also keeps out variables that the platform adds on its own.
+Kubernetes, for example, by default gives each pod variables such as
+`<SERVICE>_PORT=tcp://<address>:<port>` for the Services in its namespace,
+which without a prefix override a setting of that name.
+
+Since any uppercase name is looked up, `conf.get("HOME")` returns your home
+directory and a setting you require with `validates_presence_of` can come
+from the environment alone. To read only the names you declared, pass
+`defined_only=True`:
+
+```python
+Config.allow_environment_variables(prefix="MYAPP_", defined_only=True)
+```
+
+Now a variable is used only for a setting declared with `Config.define` or
+an alias registered with `Config.alias`, and every other one is ignored,
+whatever its prefix. Like the prefix, the choice applies to every `Config` in
+the process and is dropped by a later call that does not repeat it.
 
 ## Reloading
 
