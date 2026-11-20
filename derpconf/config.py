@@ -96,8 +96,22 @@ class Config:
 
     @classmethod
     def get_conf_file(cls, conf_name, lookup_paths):
+        # A lone path is searched as such: iterating a string would search each
+        # of its characters as a directory. An empty one stays no path at all,
+        # since searching it would mean the working directory.
+        if isinstance(lookup_paths, (str, bytes, os.PathLike)):
+            lookup_paths = [lookup_paths] if lookup_paths else []
+
         for conf_path in lookup_paths:
             conf_path_file = abspath(join(conf_path, conf_name))
+
+            # An empty conf_name, or ".", names the directory being searched,
+            # and loading it would execute every *.conf file it holds.
+            if conf_path_file == abspath(conf_path):
+                raise ConfigurationError(
+                    f"conf_name {conf_name!r} names the lookup path {conf_path} "
+                    "itself, not a configuration file in it"
+                )
 
             if exists(conf_path_file):
                 return conf_path_file
