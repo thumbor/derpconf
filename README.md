@@ -112,7 +112,10 @@ loaded in alphabetical order, and later files override earlier ones:
   20-production.conf    # wins for every setting both files assign
 ```
 
-Subdirectories are skipped, even when their names end in `.conf`.
+Only regular files are loaded. Subdirectories, named pipes and other special
+files are skipped, even when their names end in `.conf`, and so is any name
+that starts with a dot, such as `.20-production.conf` or the lock file an
+editor leaves next to the file it is changing.
 
 ### Per-load defaults
 
