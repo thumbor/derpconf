@@ -14,6 +14,7 @@ import sys
 import traceback
 from collections import defaultdict
 from os.path import abspath, dirname, join
+from types import SimpleNamespace
 
 import pytest
 
@@ -648,6 +649,18 @@ class TestVerifyConfig:
             'Configuration "\033[94mSOME_KEY\033[0m" not found in file '
             f'{fix("missing.conf")}. Using "\033[92mdefault\033[0m" instead.\n'
         )
+
+    def test_writes_plain_text_to_stdout_without_isatty(self, monkeypatch):
+        Config.define("SOME_KEY", "default", "test key")
+        written = []
+        monkeypatch.setattr(sys, "stdout", SimpleNamespace(write=written.append))
+
+        verify_config(fix("missing.conf"))
+
+        assert written == [
+            f'Configuration "SOME_KEY" not found in file {fix("missing.conf")}. '
+            'Using "default" instead.\n'
+        ]
 
     def test_prints_nothing_when_file_sets_every_key(self, capsys):
         Config.define("FOO", "default", "test key")
