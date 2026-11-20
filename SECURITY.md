@@ -65,8 +65,10 @@ consider the following:
 - Only load configuration from trusted locations. Never build the `path`,
   `conf_name` or `lookup_paths` passed to `Config.load`, or the path passed
   to `verify_config`, from user input. `conf_name` is joined to each lookup
-  path without checks: a value containing `..` escapes the directory, and an
-  absolute value replaces it.
+  path as given: a value containing `..` escapes the directory, and an
+  absolute value replaces it. Only a value that names the lookup path itself,
+  such as an empty string or `.`, is refused, because it would execute every
+  `*.conf` file in that directory.
 - Restrict write access to configuration files and directories to the account
   that deploys the application. When the path is a directory, every `*.conf`
   file in it is executed in alphabetical order, on load and again on every

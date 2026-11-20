@@ -105,7 +105,11 @@ it, or if you pass neither, you get a `Config` that holds only defaults. A
 
 `conf_name` is joined to each directory as given, so keep it a plain file
 name: a value with `..` escapes the directory, and an absolute value
-replaces it.
+replaces it. An empty value or `.` would name the directory itself and load
+every `*.conf` file in it, so it raises `ConfigurationError` instead.
+
+`lookup_paths` is a list of directories. A single one, passed as a string or
+a path object, is searched as a list of one, and an empty string as none.
 
 ### Loading a directory
 

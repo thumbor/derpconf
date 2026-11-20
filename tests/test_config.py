@@ -99,6 +99,54 @@ class TestLoading:
 
         assert config.DEFAULT == "DEFAULTVALUE"
 
+    @pytest.mark.parametrize("conf_name", ["", ".", "./"])
+    def test_conf_name_naming_lookup_path_is_refused(self, tmp_path, conf_name):
+        (tmp_path / "01-first.conf").write_text("FOO = 1\n", encoding="utf-8")
+
+        with pytest.raises(ConfigurationError, match="names the lookup path"):
+            Config.load(None, conf_name=conf_name, lookup_paths=[str(tmp_path)])
+
+    @pytest.mark.parametrize(
+        "as_lookup_paths, conf_name",
+        [
+            (str, "sample.conf"),
+            (lambda path: path, "sample.conf"),
+            (os.fsencode, b"sample.conf"),
+        ],
+        ids=["str", "path object", "bytes"],
+    )
+    def test_single_lookup_path_is_searched(self, tmp_path, as_lookup_paths, conf_name):
+        (tmp_path / "sample.conf").write_text("FOO = 1\n", encoding="utf-8")
+
+        config = Config.load(
+            None, conf_name=conf_name, lookup_paths=as_lookup_paths(tmp_path)
+        )
+
+        assert config.FOO == 1
+
+    # Iterating the string would search "/", "m", "i" and so on down to "t".
+    def test_string_lookup_path_is_not_searched_by_character(
+        self, tmp_path, monkeypatch
+    ):
+        (tmp_path / "t").mkdir()
+        (tmp_path / "t" / "sample.conf").write_text("FOO = 1\n", encoding="utf-8")
+        monkeypatch.chdir(tmp_path)
+
+        config = Config.load(None, conf_name="sample.conf", lookup_paths="/missing/t")
+
+        assert not hasattr(config, "FOO")
+
+    @pytest.mark.parametrize(
+        "lookup_paths, conf_name", [("", "sample.conf"), (b"", b"sample.conf")]
+    )
+    def test_empty_lookup_path_searches_nothing(
+        self, tmp_path, monkeypatch, lookup_paths, conf_name
+    ):
+        (tmp_path / "sample.conf").write_text("FOO = 1\n", encoding="utf-8")
+        monkeypatch.chdir(tmp_path)
+
+        assert Config.get_conf_file(conf_name, lookup_paths) is None
+
     def test_no_path_and_no_conf_name_keeps_defaults(self):
         config = Config.load(None, defaults={"DEFAULT": "DEFAULTVALUE"})
 
