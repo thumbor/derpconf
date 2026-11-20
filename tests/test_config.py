@@ -525,14 +525,36 @@ class TestAliasOfAlias:
         assert config.STORAGE_ALIAS_ALIAS == "z"
 
 
-def test_alias_cycle_does_not_hang_a_read_from_the_environment(monkeypatch):
-    Config.alias("FIRST", "SECOND")
-    Config.alias("SECOND", "THIRD")
-    Config.alias("THIRD", "FIRST")
-    Config.allow_environment_variables()
-    monkeypatch.setenv("FIRST", "value")
+class TestAliasCycle:
+    def test_alias_of_itself_is_refused(self):
+        with pytest.raises(ValueError, match="FIRST would be an alias of itself"):
+            Config.alias("FIRST", "FIRST")
 
-    assert Config().FIRST == "value"
+    def test_alias_closing_a_cycle_is_refused(self):
+        Config.alias("FIRST", "SECOND")
+        Config.alias("SECOND", "THIRD")
+
+        with pytest.raises(ValueError, match="THIRD would be an alias of itself"):
+            Config.alias("THIRD", "FIRST")
+
+    def test_refused_alias_is_not_registered(self):
+        Config.alias("FIRST", "SECOND")
+
+        with pytest.raises(ValueError):
+            Config.alias("SECOND", "FIRST")
+
+        assert Config.class_aliased_items == {"FIRST": "SECOND"}
+        assert Config.class_aliases == {"SECOND": ["FIRST"]}
+
+    # SECOND already resolves to FOURTH, so the chain has to be checked for
+    # SECOND itself and not only for the name it ends at.
+    def test_registered_alias_cannot_be_pointed_at_itself(self):
+        Config.alias("FIRST", "SECOND")
+        Config.alias("SECOND", "FOURTH")
+        Config.alias("THIRD", "FIRST")
+
+        with pytest.raises(ValueError, match="SECOND would be an alias of itself"):
+            Config.alias("SECOND", "THIRD")
 
 
 def test_verify_lists_keys_missing_from_file():
