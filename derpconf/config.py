@@ -402,7 +402,8 @@ def verify_config(path=None):
     validation = Config.verify(path)
 
     blue, green, reset = "", "", ""
-    if sys.stdout.isatty():
+    # sys.stdout may be a replacement that only implements write.
+    if getattr(sys.stdout, "isatty", lambda: False)():
         blue, green, reset = "\033[94m", "\033[92m", "\033[0m"
 
     for key, default in validation:
