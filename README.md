@@ -57,7 +57,8 @@ Reading a setting that has neither a value nor a default raises
 A file that cannot be read as UTF-8, fails to compile or raises while it
 runs makes `Config.load` raise `ConfigurationError`, with a message naming
 the file and the original exception as its `__cause__`. Inside the file,
-`__file__` holds the path it was loaded from.
+`__file__` holds the path it was loaded from, which `Config.load` makes
+absolute when you pass a relative one.
 
 > Configuration files are executed as Python code with the privileges of your
 > process. Only load files from locations you trust. See
@@ -180,6 +181,10 @@ in any file falls back to its default, or is gone when it has none, while
 values assigned in code to names the files never set are kept. If a file now
 fails, `reload()` raises `ConfigurationError` and keeps every value it had.
 You do not need to reload to see defaults declared later.
+
+A relative `path` is joined to the working directory when it is loaded, so
+`reload()` reads the same file or directory even if the process has changed
+directory since.
 
 ## Renaming settings
 
