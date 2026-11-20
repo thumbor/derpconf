@@ -154,6 +154,80 @@ class TestLoading:
         assert output == "'a\\xe7\\xe3o' []\n"
 
 
+class TestLoadingRelativePath:
+    @pytest.fixture
+    def conf_dir(self, tmp_path, monkeypatch):
+        for directory, value in ((tmp_path, 1), (tmp_path / "other", 2)):
+            (directory / "conf.d").mkdir(parents=True)
+            (directory / "sample.conf").write_text(
+                f"FOO = {value}\nFILE = __file__\n", encoding="utf-8"
+            )
+            (directory / "conf.d" / "01-first.conf").write_text(
+                f"BAR = {value}\n", encoding="utf-8"
+            )
+
+        monkeypatch.chdir(tmp_path)
+
+        return tmp_path
+
+    @pytest.mark.usefixtures("conf_dir")
+    def test_file_is_recorded_under_working_directory(self):
+        config = Config.load("sample.conf")
+
+        assert config.config_file == join(os.getcwd(), "sample.conf")
+        assert config.FILE == config.config_file
+
+    @pytest.mark.usefixtures("conf_dir")
+    def test_directory_is_recorded_under_working_directory(self):
+        config = Config.load("conf.d")
+
+        assert config.config_folder == join(os.getcwd(), "conf.d")
+        assert config.config_file == join(os.getcwd(), "conf.d", "01-first.conf")
+
+    def test_reload_reads_same_file_after_chdir(self, conf_dir, monkeypatch):
+        config = Config.load("sample.conf")
+
+        monkeypatch.chdir(conf_dir / "other")
+        config.reload()
+
+        assert config.FOO == 1
+
+    def test_reload_reads_same_directory_after_chdir(self, conf_dir, monkeypatch):
+        config = Config.load("conf.d")
+
+        monkeypatch.chdir(conf_dir / "other")
+        config.reload()
+
+        assert config.BAR == 1
+
+    def test_accepts_path_object(self, conf_dir):
+        config = Config.load((conf_dir / "sample.conf").relative_to(conf_dir))
+
+        assert config.config_file == join(os.getcwd(), "sample.conf")
+
+    @pytest.mark.usefixtures("conf_dir")
+    def test_accepts_bytes(self):
+        config = Config.load(b"sample.conf")
+
+        assert config.config_file == join(os.getcwdb(), b"sample.conf")
+
+    def test_absolute_path_is_kept_as_given(self, conf_dir):
+        path = conf_dir / "sample.conf"
+
+        assert Config.load(path).config_file is path
+
+    # link/../sample.conf is real/sample.conf to open(), but ./sample.conf once
+    # ".." is collapsed as text, which is what os.path.abspath does.
+    def test_parent_of_symlink_is_not_collapsed(self, conf_dir):
+        (conf_dir / "real" / "sub").mkdir(parents=True)
+        (conf_dir / "real" / "sample.conf").write_text("FOO = 3\n", encoding="utf-8")
+        (conf_dir / "link").symlink_to(conf_dir / "real" / "sub", True)
+
+        config = Config.load(join("link", os.pardir, "sample.conf"))
+
+        assert config.FOO == 3
+
+
 class TestLoadingDirectory:
     @pytest.fixture
     def config(self):
