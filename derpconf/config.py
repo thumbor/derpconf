@@ -12,7 +12,7 @@ import logging
 import os
 import sys
 from collections import defaultdict
-from os.path import abspath, exists, isdir, isfile, join
+from os.path import abspath, exists, isabs, isdir, isfile, join
 from textwrap import fill
 
 logger = logging.getLogger(__name__)
@@ -129,6 +129,13 @@ class Config:
 
         if not exists(path):
             raise ConfigurationError(f"Configuration file not found at path {path}")
+
+        # reload() may run after the working directory changed, so a relative
+        # path is pinned to the current one. Not abspath: it also collapses
+        # "..", which names another file when the part before it is a symlink.
+        if not isabs(path):
+            path = os.fspath(path)
+            path = join(os.getcwdb() if isinstance(path, bytes) else os.getcwd(), path)
 
         conf = cls(defaults=defaults)
 
