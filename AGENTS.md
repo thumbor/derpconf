@@ -152,6 +152,16 @@ Makefile                 ← setup, test, lint, pre-commit
 - `Config.alias(old_name, new_name)` makes `old_name` a deprecated alias:
   reading or setting it logs a warning on the `derpconf.config` logger and
   redirects to `new_name`. Aliases of aliases resolve to the final name.
+- `conf.items` is a dict of every name from `Config.define`, the `defaults`
+  and the instance itself, which holds what the constructor, the files and
+  assignments in code set. A name from the first two goes under the final
+  name of its alias. Each value is what reading the setting gives, so the
+  environment applies. Names that never read as a setting are left out: the
+  instance state in `Config._instance_state`, a name `Config` itself has,
+  such as `get`, a key that is not a string and a default stored under an
+  alias. A new instance attribute that is not a setting has to join
+  `_instance_state`. `Config` copies the `defaults` it is given into a plain
+  dict, so a mapping with lookup rules of its own loses them.
 - `get_config_text()` (printed by `generate_config()`) renders every group and
   setting, with its description, aliases and default, as a commented sample
   file. For a default made of literals, uncommenting its lines must give it

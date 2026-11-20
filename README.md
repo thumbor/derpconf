@@ -54,6 +54,10 @@ conf.get("TIMEOUT", 30)   # 30, the fallback for an unknown setting
 Reading a setting that has neither a value nor a default raises
 `AttributeError`, or `KeyError` when you use `conf["..."]`.
 
+`conf.items` is a dict of every setting the configuration knows, whether
+declared, defaulted, loaded or assigned in code, with the value that
+reading it gives.
+
 A file that cannot be read as UTF-8, fails to compile or raises while it
 runs makes `Config.load` raise `ConfigurationError`, with a message naming
 the file and the original exception as its `__cause__`. Inside the file,
@@ -122,7 +126,9 @@ conf = Config.load("/etc/myapp.conf", defaults={"HOST": "0.0.0.0"})
 ```
 
 Values in `defaults` take precedence over the `Config.define` defaults for
-this instance only, and values from the file still win over both.
+this instance only, and values from the file still win over both. derpconf
+copies them into a dict of its own, so changing yours afterwards does not
+change the configuration.
 
 ## Environment variables
 
