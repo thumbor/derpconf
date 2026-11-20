@@ -12,7 +12,7 @@ import logging
 import os
 import sys
 from collections import defaultdict
-from os.path import abspath, exists, isdir, join
+from os.path import abspath, exists, isdir, isfile, join
 from textwrap import fill
 
 logger = logging.getLogger(__name__)
@@ -159,9 +159,16 @@ class Config:
         for name in sorted(os.listdir(path)):
             file = join(path, name)
 
-            # Not isfile: a dangling *.conf symlink must keep failing the load
-            # instead of silently dropping the settings it was meant to hold.
-            if name.endswith(".conf") and not isdir(file):
+            # A hidden name is skipped as a shell's *.conf would skip it:
+            # editors keep their lock files under such names.
+            if not name.endswith(".conf") or name.startswith("."):
+                continue
+
+            # Only regular files are executed, so a named pipe cannot block the
+            # load. A dangling symlink is still read: it must keep failing the
+            # load instead of silently dropping the settings it was meant to
+            # hold.
+            if isfile(file) or not exists(file):
                 files.append((file, cls._read_file(file)))
 
         return files

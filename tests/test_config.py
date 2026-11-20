@@ -13,6 +13,7 @@ import importlib
 import os
 import subprocess
 import sys
+import threading
 import traceback
 from collections import defaultdict
 from os.path import abspath, dirname, join
@@ -213,6 +214,71 @@ class TestLoadingDirectoryWithSymlinks:
 
         with pytest.raises(ConfigurationError, match="01-link.conf: FileNotFoundError"):
             Config.load(str(conf_dir))
+
+
+class TestLoadingDirectoryWithHiddenAndSpecialFiles:
+    @pytest.fixture
+    def conf_dir(self, tmp_path):
+        (tmp_path / "01-first.conf").write_text("FOO = 1\n", encoding="utf-8")
+
+        return tmp_path
+
+    def test_skips_hidden_file(self, conf_dir):
+        (conf_dir / ".hidden.conf").write_text("HIDDEN = 1\n", encoding="utf-8")
+
+        config = Config.load(str(conf_dir))
+
+        assert config.FOO == 1
+        assert not hasattr(config, "HIDDEN")
+
+    # Emacs locks the file being edited with a dangling link named like this.
+    def test_skips_hidden_dangling_link(self, conf_dir):
+        (conf_dir / ".#01-first.conf").symlink_to("user@host.1234:1700000000")
+
+        assert Config.load(str(conf_dir)).FOO == 1
+
+    def test_hidden_file_given_as_path_is_loaded(self, conf_dir):
+        (conf_dir / ".hidden.conf").write_text("HIDDEN = 1\n", encoding="utf-8")
+
+        assert Config.load(str(conf_dir / ".hidden.conf")).HIDDEN == 1
+
+    def test_reload_skips_hidden_file_added_later(self, conf_dir):
+        config = Config.load(str(conf_dir))
+
+        (conf_dir / ".hidden.conf").write_text("HIDDEN = 1\n", encoding="utf-8")
+        config.reload()
+
+        assert not hasattr(config, "HIDDEN")
+
+    def test_skips_named_pipe(self, conf_dir):
+        pipe = conf_dir / "02-pipe.conf"
+        os.mkfifo(pipe)
+        # Opening a pipe for writing waits for a reader, so a load that read it
+        # would get this setting and fail the test instead of hanging the suite.
+        writer = threading.Thread(
+            target=pipe.write_text,
+            args=("PIPED = 1\n",),
+            kwargs={"encoding": "utf-8"},
+            daemon=True,
+        )
+        writer.start()
+
+        config = Config.load(str(conf_dir))
+
+        # Nothing read the pipe, so the writer is still waiting for a reader.
+        reader = os.open(pipe, os.O_RDONLY | os.O_NONBLOCK)
+        writer.join()
+        os.close(reader)
+
+        assert config.FOO == 1
+        assert not hasattr(config, "PIPED")
+
+    def test_skips_link_to_special_file(self, conf_dir):
+        (conf_dir / "02-null.conf").symlink_to(os.devnull)
+
+        config = Config.load(str(conf_dir))
+
+        assert config.config_file == str(conf_dir / "01-first.conf")
 
 
 class TestExecutingFile:
