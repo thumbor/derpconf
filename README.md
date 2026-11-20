@@ -32,7 +32,7 @@ Config.define("PORT", 8888, "Port the server listens on", "Server")
 ```
 
 Write a configuration file. It is plain Python, and every top-level name
-written in uppercase becomes a setting; lowercase names are ignored:
+written in uppercase becomes a setting; any other name is ignored:
 
 ```python
 # /etc/myapp.conf
