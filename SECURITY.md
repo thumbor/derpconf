@@ -97,6 +97,13 @@ consider the following:
 - Do not use secrets as default values in `Config.define`. `generate_config`
   writes every default into the sample file and `verify_config` prints the
   default used for each missing key.
+- Treat a `ConfigurationError` raised for a configuration file as sensitive.
+  Its message repeats the message of the original exception, which can quote
+  a value, and the traceback of that original exception, printed along with
+  it, shows the line of the file that failed. A line that holds a secret and
+  fails therefore reaches wherever the error is logged or reported with its
+  traceback, so keep such reports out of shared logs and of anything shown to
+  users.
 
 Treating configuration as trusted code helps prevent issues such as an
 attacker who can write a single file in a configuration directory gaining code
