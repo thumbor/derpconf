@@ -137,8 +137,11 @@ Makefile                 ← setup, test, lint, pre-commit
   Symlinks are followed: a link to a file is loaded, a link to a directory
   or to a special file is skipped, and a dangling link raises
   `ConfigurationError` unless its name starts with a dot.
-- `load` records the path and calls `reload()`, which re-reads
-  `config_folder` when set and `config_file` otherwise, taken from the
+- `load` records the path, joined to the working directory when it is
+  relative so that a later `chdir` cannot make `reload()` execute another
+  file, and without collapsing `..` as `abspath` would, which names another
+  file when the part before it is a symlink. It then calls `reload()`, which
+  re-reads `config_folder` when set and `config_file` otherwise, taken from the
   instance itself and never from the environment or the defaults, since
   either would choose which file gets executed. Both reach their own
   state through the class and the instance dict, and `__setattr__` and
