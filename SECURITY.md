@@ -69,8 +69,9 @@ consider the following:
   absolute value replaces it.
 - Restrict write access to configuration files and directories to the account
   that deploys the application. When the path is a directory, every `*.conf`
-  file in it is executed in alphabetical order, so anyone who can create a
-  file there can run code in your application. Symbolic links are followed,
+  file in it is executed in alphabetical order, on load and again on every
+  `reload()`, so anyone who can create a file there can run code in your
+  application. Symbolic links are followed,
   so a `*.conf` link in that directory executes the file it points to,
   wherever that file lives.
 - Order `lookup_paths` from most to least trusted. `Config.load` uses the
