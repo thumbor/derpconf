@@ -149,6 +149,9 @@ Makefile                 ← setup, test, lint, pre-commit
 - `Config.alias(old_name, new_name)` makes `old_name` a deprecated alias:
   reading or setting it logs a warning on the `derpconf.config` logger and
   redirects to `new_name`. Aliases of aliases resolve to the final name.
+  `Config.alias` raises `ValueError` for an alias that would resolve to
+  itself, directly or through a chain, so code that follows aliases never
+  has to guard against a cycle.
 - `conf.items` is a dict of every name from `Config.define`, the `defaults`
   and the instance itself, which holds what the constructor, the files and
   assignments in code set. A name from the first two goes under the final

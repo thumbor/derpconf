@@ -94,16 +94,23 @@ class Config:
     def alias(cls, new_key, aliased_key):
         if aliased_key in cls.class_aliased_items:
             aliased_key = cls.class_aliased_items[aliased_key]
+
+        # A cycle of aliases never reaches a setting: reading or assigning one
+        # of its names would recurse until RecursionError.
+        target = aliased_key
+
+        while target != new_key and target in cls.class_aliased_items:
+            target = cls.class_aliased_items[target]
+
+        if target == new_key:
+            raise ValueError(f"{new_key} would be an alias of itself")
+
         cls.class_aliases[aliased_key].append(new_key)
         cls.class_aliased_items[new_key] = aliased_key
 
     @classmethod
     def _resolve_alias(cls, name):
-        seen = set()
-
-        # alias() can be led into a cycle, which must not loop here forever.
-        while name in cls.class_aliased_items and name not in seen:
-            seen.add(name)
+        while name in cls.class_aliased_items:
             name = cls.class_aliased_items[name]
 
         return name
