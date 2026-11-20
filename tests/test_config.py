@@ -46,6 +46,7 @@ def isolated_config(monkeypatch):
     monkeypatch.setattr(Config, "class_aliased_items", {})
     monkeypatch.setattr(Config, "_allow_environment_variables", False)
     monkeypatch.setattr(Config, "_environment_variables_prefix", "")
+    monkeypatch.setattr(Config, "_environment_variables_defined_only", False)
 
 
 class TestLoading:
@@ -739,6 +740,57 @@ class TestEnvironmentVariablesOnlyReachSettings:
         monkeypatch.setenv("RELOAD_ALL", "masked")
 
         assert CustomConfig().RELOAD_ALL() == "method"
+
+
+class TestEnvironmentVariablesDefinedOnly:
+    @pytest.fixture
+    def config(self):
+        Config.define("PORT", 8888, "Port the server listens on")
+        Config.alias("OLD_PORT", "PORT")
+
+        return Config.load(fix("sample.conf"))
+
+    def test_defined_setting_is_read(self, config, monkeypatch):
+        Config.allow_environment_variables(defined_only=True)
+        monkeypatch.setenv("PORT", "9100")
+
+        assert config.PORT == 9100
+
+    def test_alias_is_read(self, config, monkeypatch):
+        Config.allow_environment_variables(defined_only=True)
+        monkeypatch.setenv("OLD_PORT", "9200")
+
+        assert config.OLD_PORT == 9200
+
+    def test_undefined_name_is_not_read(self, config, monkeypatch):
+        Config.allow_environment_variables(defined_only=True)
+        monkeypatch.setenv("SECRET_KEY", "secret")
+
+        assert config.get("SECRET_KEY", "fallback") == "fallback"
+
+        with pytest.raises(ConfigurationError):
+            config.validates_presence_of("SECRET_KEY")
+
+    def test_undefined_name_keeps_value_from_file(self, config, monkeypatch):
+        Config.allow_environment_variables(defined_only=True)
+        monkeypatch.setenv("FOO", "baz")
+
+        assert config.FOO == "bar"
+
+    def test_prefix_still_applies(self, config, monkeypatch):
+        Config.allow_environment_variables(prefix="MYAPP_", defined_only=True)
+        monkeypatch.setenv("MYAPP_PORT", "9100")
+        monkeypatch.setenv("MYAPP_FOO", "baz")
+
+        assert config.PORT == 9100
+        assert config.FOO == "bar"
+
+    def test_call_without_it_reads_undefined_names_again(self, config, monkeypatch):
+        Config.allow_environment_variables(defined_only=True)
+        Config.allow_environment_variables()
+        monkeypatch.setenv("FOO", "baz")
+
+        assert config.FOO == "baz"
 
 
 class TestEnvironmentVariableTypes:

@@ -43,8 +43,9 @@ sample file from the registered defaults. The whole library lives in
   `.bak` file checks that only `*.conf` files are executed, and its
   `04-dir.conf/` subdirectory checks that directories are skipped.
 - `Config` keeps defaults, groups, aliases and the environment variable flag
-  and prefix in class attributes. The autouse `isolated_config` fixture gives
-  each test fresh ones, so tests may call `Config.define`, `Config.alias` and
+  and prefix in class attributes, the `defined_only` choice included. The
+  autouse `isolated_config` fixture gives each test fresh ones, so tests may
+  call `Config.define`, `Config.alias` and
   `Config.allow_environment_variables()` freely. Set environment variables
   with `monkeypatch.setenv` so they are removed afterwards.
 - The suite used to run on pyVows. Older branches and open pull requests that
@@ -232,6 +233,12 @@ Makefile                 ← setup, test, lint, pre-commit
   boolean (thumbor uses a `False` default to switch off string settings). Any
   other value that does not parse raises `ConfigurationError` naming the
   variable, never echoing the value, since it may be a secret.
+- Any uppercase name is read from the environment whether or not it was
+  defined, which is how a setting required with `validates_presence_of` can
+  come from the environment alone. `allow_environment_variables` called with
+  `defined_only=True` narrows the lookup to names in `class_defaults` or
+  `class_aliased_items`, so the target of an alias has to be defined to be
+  read under its own name.
 - `verify_config` prints the default used for each missing key, and
   `generate_config` prints every default. Never put real secrets in
   `Config.define` defaults, fixtures or examples.
