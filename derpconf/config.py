@@ -260,7 +260,12 @@ class Config:
         if name in ["_allow_environment_variables", "_environment_variables_prefix"]:
             return super().__getattribute__(name)
 
-        if self._allow_environment_variables:
+        # isupper() keeps out "_", which shells export to every child process.
+        if (
+            name.isupper()
+            and self._allow_environment_variables
+            and not hasattr(type(self), name)
+        ):
             prefix = self._environment_variables_prefix
             value = os.environ.get(prefix + name, None)
 

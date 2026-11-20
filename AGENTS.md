@@ -129,9 +129,10 @@ Makefile                 ← setup, test, lint, pre-commit
   overriding earlier ones. `config_file` ends up pointing at the last file,
   so `reload()` after a directory load re-executes only that file.
 - Reading a setting checks, in order: the environment (only after
-  `allow_environment_variables()`, with its `prefix` prepended to the
-  name), values from the loaded files, the `defaults` passed to `load`, the
-  default from `Config.define`, and finally raises `AttributeError`.
+  `allow_environment_variables()` and only for uppercase names, with its
+  `prefix` prepended to the name), values from the loaded files, the
+  `defaults` passed to `load`, the default from `Config.define`, and finally
+  raises `AttributeError`.
 - `Config.alias(old_name, new_name)` makes `old_name` a deprecated alias:
   reading or setting it logs a warning on the `derpconf.config` logger and
   redirects to `new_name`. Aliases of aliases resolve to the final name.
@@ -180,18 +181,19 @@ Makefile                 ← setup, test, lint, pre-commit
   `verify_config` execute them with the privileges of the process. Any change
   that widens which files get executed (new extensions, recursive directory
   walks, extra lookup paths) is a security change and needs a test.
-- Once `allow_environment_variables()` is called, it and its `prefix` apply
-  to every `Config` in the process. `__getattribute__` checks the
-  environment for every attribute name except `_allow_environment_variables`
-  and `_environment_variables_prefix`, including methods such as `get` and
-  `reload` and internals such as `defaults`. The value it returns is cast to
-  the type of the `Config.define` default (aliases resolved, keyed on the
-  unprefixed name) through `ENVIRONMENT_PARSERS`; a `None`, `str` or other
-  default, or no definition at all, keeps the raw string, and so do an empty
-  value and a `bool` value that is not a recognized boolean (thumbor uses a
-  `False` default to switch off string settings). Any other value that does
-  not parse raises `ConfigurationError` naming the variable, never echoing
-  the value, since it may be a secret.
+- Once `allow_environment_variables()` is called, it and its `prefix` apply to
+  every `Config` in the process. `__getattribute__` checks the environment only
+  for names where `name.isupper()` holds and that are not attributes of the
+  class, so methods such as `get` and `reload` and internals such as
+  `config_file` and `defaults` never come from it; letting them through made
+  `config_file` in the environment turn `reload()` into executing any file. The
+  value it returns is cast to the type of the `Config.define` default (aliases
+  resolved, keyed on the unprefixed name) through `ENVIRONMENT_PARSERS`; a
+  `None`, `str` or other default, or no definition at all, keeps the raw
+  string, and so do an empty value and a `bool` value that is not a recognized
+  boolean (thumbor uses a `False` default to switch off string settings). Any
+  other value that does not parse raises `ConfigurationError` naming the
+  variable, never echoing the value, since it may be a secret.
 - `verify_config` prints the default used for each missing key, and
   `generate_config` prints every default. Never put real secrets in
   `Config.define` defaults, fixtures or examples.
