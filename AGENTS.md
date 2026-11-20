@@ -131,9 +131,12 @@ Makefile                 ← setup, test, lint, pre-commit
 - A directory loads every `*.conf` file in it in sorted order, later files
   overriding earlier ones. `config_folder` keeps the directory and
   `config_file` ends up pointing at the last file, or is unset when the
-  directory has none. Subdirectories are skipped whatever their names.
+  directory has none. Only regular files are read: subdirectories, named
+  pipes and other special files are skipped whatever their names, and so are
+  names that start with a dot, as a shell's `*.conf` would skip them.
   Symlinks are followed: a link to a file is loaded, a link to a directory
-  is skipped, and a dangling link raises `ConfigurationError`.
+  or to a special file is skipped, and a dangling link raises
+  `ConfigurationError` unless its name starts with a dot.
 - `load` records the path and calls `reload()`, which re-reads
   `config_folder` when set and `config_file` otherwise, taken from the
   instance itself and never from the environment or the defaults, since
