@@ -212,6 +212,9 @@ deprecation warning on the `derpconf.config` logger and uses `STORAGE`
 instead. The generated sample lists `OLD_STORAGE` among the aliases of
 `STORAGE`.
 
+`Config.alias` raises `ValueError` for an alias that would lead back to
+itself, directly or through other aliases.
+
 ## Requiring settings
 
 ```python
