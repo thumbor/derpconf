@@ -76,6 +76,7 @@ class Config:
     class_aliases = defaultdict(list)
     class_aliased_items = {}
     _allow_environment_variables = False
+    _environment_variables_defined_only = False
     _environment_variables_prefix = ""
 
     @classmethod
@@ -105,9 +106,10 @@ class Config:
         return None
 
     @classmethod
-    def allow_environment_variables(cls, prefix=""):
+    def allow_environment_variables(cls, prefix="", *, defined_only=False):
         cls._allow_environment_variables = True
         cls._environment_variables_prefix = prefix
+        cls._environment_variables_defined_only = defined_only
 
     @classmethod
     def load(cls, path, conf_name=None, lookup_paths=None, defaults=None):
@@ -265,6 +267,10 @@ class Config:
             name.isupper()
             and self._allow_environment_variables
             and not hasattr(type(self), name)
+            and (
+                not type(self)._environment_variables_defined_only
+                or type(self)._is_declared(name)
+            )
         ):
             prefix = self._environment_variables_prefix
             value = os.environ.get(prefix + name, None)
@@ -273,6 +279,10 @@ class Config:
                 return type(self).parse_environment_value(name, prefix + name, value)
 
         return super().__getattribute__(name)
+
+    @classmethod
+    def _is_declared(cls, name):
+        return name in cls.class_defaults or name in cls.class_aliased_items
 
     @classmethod
     def parse_environment_value(cls, name, env_name, value):
