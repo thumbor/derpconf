@@ -95,6 +95,13 @@ class Config:
         cls.class_aliased_items[new_key] = aliased_key
 
     @classmethod
+    def _resolve_alias(cls, name):
+        while name in cls.class_aliased_items:
+            name = cls.class_aliased_items[name]
+
+        return name
+
+    @classmethod
     def get_conf_file(cls, conf_name, lookup_paths):
         for conf_path in lookup_paths:
             conf_path_file = abspath(join(conf_path, conf_name))
@@ -125,30 +132,33 @@ class Config:
 
         conf = cls(defaults=defaults)
 
-        return cls.__load_from_path(conf, path)
-
-    @classmethod
-    def __load_from_path(cls, conf, path):
         if isdir(path):
-            conf.config_folder = path
-            files = sorted(os.listdir(path))
+            conf.config_folder = path  # pylint: disable=attribute-defined-outside-init
+        else:
+            conf.config_file = path  # pylint: disable=attribute-defined-outside-init
 
-            for file in files:
-                if file.endswith(".conf"):
-                    filepath = path + os.sep + file
-                    conf = Config.__load_from_path(conf, filepath)
-
-            return conf
-
-        namespace = cls._execute(path)
-        conf.config_file = path
-
-        for name, value in namespace.items():
-            if name.upper() == name:
-                conf._items[name] = value  # pylint: disable=protected-access
-                setattr(conf, name, value)
+        # Not conf.reload(): the environment may hold a variable named reload.
+        cls.reload(conf)
 
         return conf
+
+    @classmethod
+    def _read_settings(cls, path):
+        if not isdir(path):
+            namespace = cls._execute(path)
+            settings = {
+                name: value for name, value in namespace.items() if name.upper() == name
+            }
+
+            return [(path, settings)]
+
+        files = []
+
+        for file in sorted(os.listdir(path)):
+            if file.endswith(".conf"):
+                files.extend(cls._read_settings(path + os.sep + file))
+
+        return files
 
     @staticmethod
     def _execute(path):
@@ -196,6 +206,7 @@ class Config:
             self.defaults = kw["defaults"]
 
         self._items = kw
+        self._loaded_names = set()
 
         for key, value in kw.items():
             setattr(self, key, value)
@@ -216,12 +227,36 @@ class Config:
         return values
 
     def reload(self):
-        cfg = getattr(self, "config_file", None)
+        # pylint: disable=protected-access
+        # Through the class and the instance dict, never getattr: it also reads
+        # the environment and the defaults. Neither may choose the file that
+        # gets executed, and a variable named _items must not break a load.
+        cls = type(self)
+        state = object.__getattribute__(self, "__dict__")
+        path = state.get("config_folder") or state.get("config_file")
 
-        if cfg is None:
+        if path is None:
             return
 
-        self.__load_from_path(self, cfg)
+        files = cls._read_settings(path)
+        names = {name for _, settings in files for name in settings}
+
+        # An instance unpickled from an older version has no _loaded_names.
+        for name in state.get("_loaded_names", set()) - names:
+            state["_items"].pop(name, None)
+            state.pop(cls._resolve_alias(name), None)
+
+        if "config_folder" in state:
+            state.pop("config_file", None)
+
+        for file, settings in files:
+            self.config_file = file  # pylint: disable=attribute-defined-outside-init
+
+            for name, value in settings.items():
+                state["_items"][name] = value
+                setattr(self, name, value)
+
+        self._loaded_names = names
 
     def validates_presence_of(self, *args):
         source = getattr(self, "config_file", "your configuration file")
@@ -246,13 +281,13 @@ class Config:
         raise KeyError(f"No config called '{name}'")
 
     def __setattr__(self, name, value):
-        if name in self.__class__.class_aliased_items:
+        if name in type(self).class_aliased_items:
             logger.warning(
                 "Option %s is marked as deprecated please use %s instead.",
                 name,
-                self.__class__.class_aliased_items[name],
+                type(self).class_aliased_items[name],
             )
-            self.__setattr__(self.__class__.class_aliased_items[name], value)
+            self.__setattr__(type(self).class_aliased_items[name], value)
         else:
             super().__setattr__(name, value)
 
@@ -271,9 +306,7 @@ class Config:
 
     @classmethod
     def parse_environment_value(cls, name, env_name, value):
-        while name in cls.class_aliased_items:
-            name = cls.class_aliased_items[name]
-
+        name = cls._resolve_alias(name)
         default_type = type(cls.class_defaults.get(name))
         parser = ENVIRONMENT_PARSERS.get(default_type)
 
@@ -293,20 +326,20 @@ class Config:
         if name in self.__dict__:
             return self.__dict__[name]
 
-        if name in self.__class__.class_aliased_items:
+        if name in type(self).class_aliased_items:
             logger.warning(
                 "Option %s is marked as deprecated please use %s instead.",
                 name,
-                self.__class__.class_aliased_items[name],
+                type(self).class_aliased_items[name],
             )
 
-            return self.__getattr__(self.__class__.class_aliased_items[name])
+            return self.__getattr__(type(self).class_aliased_items[name])
 
         if "defaults" in self.__dict__ and name in self.__dict__["defaults"]:
             return self.__dict__["defaults"][name]
 
-        if name in self.__class__.class_defaults:
-            return self.__class__.class_defaults[name]
+        if name in type(self).class_defaults:
+            return type(self).class_defaults[name]
 
         raise AttributeError(name)
 
