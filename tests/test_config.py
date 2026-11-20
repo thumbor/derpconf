@@ -67,6 +67,22 @@ class TestLoading:
 
         assert not hasattr(config, "baz")
 
+    @pytest.mark.parametrize(
+        "name", ["_", "__", "_1", "Foo", "\u8a2d\u5b9a", "FOO\u0138"]
+    )
+    def test_file_ignores_names_that_are_not_uppercase(self, tmp_path, name):
+        path = tmp_path / "names.conf"
+        path.write_text(f"{name} = 1\n", encoding="utf-8")
+
+        assert not hasattr(Config.load(str(path)), name)
+
+    @pytest.mark.parametrize("name", ["_FOO", "FOO_1", "\u00c7"])
+    def test_file_sets_uppercase_names(self, tmp_path, name):
+        path = tmp_path / "names.conf"
+        path.write_text(f"{name} = 1\n", encoding="utf-8")
+
+        assert getattr(Config.load(str(path)), name) == 1
+
     def test_conf_name_found_in_lookup_paths(self):
         config = Config.load(None, conf_name="sample.conf", lookup_paths=[fix("")])
 
@@ -893,6 +909,13 @@ class TestVerify:
         Config.define("MISSING", "default", "not in sample.conf")
 
         assert Config.verify(fix("sample.conf")) == [("MISSING", "default")]
+
+    def test_name_that_is_not_uppercase_is_listed(self, tmp_path):
+        Config.define("_1", "default", "the file assigns it, the filter drops it")
+        path = tmp_path / "names.conf"
+        path.write_text("_1 = 1\n", encoding="utf-8")
+
+        assert Config.verify(str(path)) == [("_1", "default")]
 
 
 def test_items_merges_defaults_and_file_values():

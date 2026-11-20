@@ -118,8 +118,10 @@ Makefile                 ← setup, test, lint, pre-commit
   defaults. A path that does not exist raises `ConfigurationError`.
 - A file is compiled under its own path and executed with the built-in
   `exec` in a fresh namespace holding only `__name__` (`"configuration"`)
-  and `__file__`. Every top-level name that equals its own uppercase becomes
-  a setting; lowercase names are ignored.
+  and `__file__`. Every top-level name for which `str.isupper()` holds
+  becomes a setting, in `load` and in `verify` alike. That takes at least
+  one cased letter, so lowercase and mixed-case names, `_`, `_1` and names
+  in a script without case are ignored.
 - Any exception from reading, compiling or executing a file,
   `UnicodeDecodeError` and `SyntaxError` included, is raised as
   `ConfigurationError` naming the file, with the original as `__cause__`.

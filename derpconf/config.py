@@ -163,9 +163,7 @@ class Config:
     def _read_file(cls, path):
         namespace = cls._execute(path)
 
-        return {
-            name: value for name, value in namespace.items() if name.upper() == name
-        }
+        return {name: value for name, value in namespace.items() if name.isupper()}
 
     @staticmethod
     def _execute(path):
@@ -193,12 +191,10 @@ class Config:
         if not exists(path):
             raise ConfigurationError(f"Configuration file not found at path {path}")
 
-        namespace = cls._execute(path)
-        conf = cls(defaults=[])
+        conf = cls()
 
-        for name, value in namespace.items():
-            if name.upper() == name:
-                setattr(conf, name, value)
+        for name, value in cls._read_file(path).items():
+            setattr(conf, name, value)
 
         not_found = []
 
