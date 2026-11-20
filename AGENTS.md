@@ -114,7 +114,10 @@ Makefile                 ← setup, test, lint, pre-commit
 - `Config.load(path, conf_name=None, lookup_paths=None, defaults=None)` loads
   `path`. When `path` is `None`, it uses the first entry of `lookup_paths`
   that contains `conf_name`; with neither, it returns a `Config` holding only
-  defaults. A path that does not exist raises `ConfigurationError`.
+  defaults. A path that does not exist raises `ConfigurationError`. So does
+  a `conf_name` that names a lookup path itself, such as `""` or `"."`,
+  which would otherwise load that whole directory. A single path given as
+  `lookup_paths` is searched as a list of one, never character by character.
 - A file is compiled under its own path and executed with the built-in
   `exec` in a fresh namespace holding only `__name__` (`"configuration"`)
   and `__file__`. Every top-level name that equals its own uppercase becomes
