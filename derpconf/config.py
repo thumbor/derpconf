@@ -22,17 +22,17 @@ class ConfigurationError(RuntimeError):
     pass
 
 
-TRUE_VALUES = ("true", "yes", "y", "on", "1")
-FALSE_VALUES = ("false", "no", "n", "off", "0")
+_TRUE_VALUES = ("true", "yes", "y", "on", "1")
+_FALSE_VALUES = ("false", "no", "n", "off", "0")
 
 
-def parse_bool(value):
+def _parse_bool(value):
     lowered = value.strip().lower()
 
-    if lowered in TRUE_VALUES:
+    if lowered in _TRUE_VALUES:
         return True
 
-    if lowered in FALSE_VALUES:
+    if lowered in _FALSE_VALUES:
         return False
 
     # A False default often switches off a setting that otherwise holds a
@@ -40,7 +40,7 @@ def parse_bool(value):
     return value
 
 
-def json_parser(target_type):
+def _json_parser(target_type):
     source_type = dict if target_type is dict else list
 
     def parse(value):
@@ -56,14 +56,14 @@ def json_parser(target_type):
 
 # Environment values are cast to the type of the default given to
 # Config.define. Any other type, None included, keeps the raw string.
-ENVIRONMENT_PARSERS = {
-    bool: parse_bool,
+_ENVIRONMENT_PARSERS = {
+    bool: _parse_bool,
     int: int,
     float: float,
-    list: json_parser(list),
-    tuple: json_parser(tuple),
-    set: json_parser(set),
-    dict: json_parser(dict),
+    list: _json_parser(list),
+    tuple: _json_parser(tuple),
+    set: _json_parser(set),
+    dict: _json_parser(dict),
 }
 
 
@@ -366,7 +366,7 @@ class Config:
             value = os.environ.get(prefix + name, None)
 
             if value is not None:
-                return type(self).parse_environment_value(name, prefix + name, value)
+                return type(self)._parse_environment_value(name, prefix + name, value)
 
         return super().__getattribute__(name)
 
@@ -375,10 +375,10 @@ class Config:
         return name in cls.class_defaults or name in cls.class_aliased_items
 
     @classmethod
-    def parse_environment_value(cls, name, env_name, value):
+    def _parse_environment_value(cls, name, env_name, value):
         name = cls._resolve_alias(name)
         default_type = type(cls.class_defaults.get(name))
-        parser = ENVIRONMENT_PARSERS.get(default_type)
+        parser = _ENVIRONMENT_PARSERS.get(default_type)
 
         if parser is None or value == "":
             return value

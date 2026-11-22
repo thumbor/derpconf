@@ -227,7 +227,7 @@ Makefile                 ← setup, test, lint, pre-commit
   `config_file` and `defaults` never come from it; letting them through made
   `config_file` in the environment turn `reload()` into executing any file. The
   value it returns is cast to the type of the `Config.define` default (aliases
-  resolved, keyed on the unprefixed name) through `ENVIRONMENT_PARSERS`; a
+  resolved, keyed on the unprefixed name) through `_ENVIRONMENT_PARSERS`; a
   `None`, `str` or other default, or no definition at all, keeps the raw
   string, and so do an empty value and a `bool` value that is not a recognized
   boolean (thumbor uses a `False` default to switch off string settings). Any
