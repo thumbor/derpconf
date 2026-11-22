@@ -213,11 +213,14 @@ Makefile                 ← setup, test, lint, pre-commit
 - `.github/workflows/release.yml` publishes releases. A maintainer bumps
   `__version__` in `derpconf/version.py` in a `Release X.Y.Z` commit, merges
   it into `master` and pushes an `X.Y.Z` tag, without a `v` prefix, at that
-  commit. The workflow builds the sdist and wheel with `uv build`, runs the
-  test suite from the unpacked sdist, fails when the tag does not match
-  `__version__`, and uploads both to PyPI with trusted publishing. It also
-  builds and tests the sdist, without uploading, on every pull request to
-  `master`. Do not bump the version in feature or fix changes.
+  commit. The workflow builds the sdist and wheel with `uv build`, fails when
+  the tag does not match `__version__`, and stores both as an artifact before
+  it installs the `dev` group and runs the test suite from the unpacked sdist,
+  so no dependency or test code runs before the files to publish are stored.
+  The publish job uploads that artifact to PyPI with trusted publishing only
+  when the suite passes. It also builds and tests the sdist, without
+  uploading, on every pull request to `master`. Do not bump the version in
+  feature or fix changes.
 - New work targets `master`.
 
 ## Security considerations

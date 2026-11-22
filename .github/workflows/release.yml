@@ -47,6 +47,13 @@ jobs:
             exit 1
           fi
 
+      # Uploaded before the suite, so the dev dependencies and the tests only
+      # run after the files that publish sends to PyPI are already stored.
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dist
+          path: dist/
+
       - name: Run the test suite from the sdist
         run: |
           uv sync --locked --no-install-project
@@ -54,11 +61,6 @@ jobs:
           tar xzf dist/derpconf-*.tar.gz -C "$RUNNER_TEMP/sdist" --strip-components=1
           cd "$RUNNER_TEMP/sdist"
           uv run --project "$GITHUB_WORKSPACE" --no-sync pytest
-
-      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: dist
-          path: dist/
 
   publish:
     if: github.event_name != 'pull_request'
