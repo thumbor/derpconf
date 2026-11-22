@@ -82,18 +82,19 @@ consider the following:
   first directory that contains `conf_name`, so a writable working directory
   listed first can shadow the file under `/etc`.
 - `Config.allow_environment_variables()` applies to every `Config` instance in
-  the process. Reading an uppercase name then returns the environment
-  variable of that name whenever one is set, whether or not the name was ever
-  declared as a setting, so enable it only when the process environment is
-  trusted. Variables the platform adds count too: Kubernetes, for example, by
-  default gives each pod variables such as
+  the process. Reading an uppercase name then returns the environment variable
+  of that name whenever one is set, whether or not the name was ever declared
+  as a setting, so enable it only when the process environment is trusted. A
+  setting with aliases also takes the variable named after an alias when its
+  own is not set. Variables the platform adds count too: Kubernetes, for
+  example, by default gives each pod variables such as
   `<SERVICE>_PORT=tcp://<address>:<port>` for the Services in its namespace,
   which override a setting of that name. Pass a `prefix` to keep your settings
-  apart from such variables, and `defined_only=True` to ignore every name
-  that is neither a setting declared with `Config.define` nor an alias
-  registered with `Config.alias`. Lowercase names, internals such as
-  `config_file` and `reload` among them, and attributes of the class are
-  never read from the environment.
+  apart from such variables, and `defined_only=True` to ignore every name that
+  is neither a setting declared with `Config.define` nor a name given to
+  `Config.alias`. Lowercase names, internals such as `config_file` and
+  `reload` among them, and attributes of the class are never read from the
+  environment.
 - Values read from environment variables are converted to the type of the
   `Config.define` default, so `DEBUG=False` gives `False` when `DEBUG` has a
   boolean default. The value stays a string for settings defined with a

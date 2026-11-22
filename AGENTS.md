@@ -156,12 +156,18 @@ Makefile                 ← setup, test, lint, pre-commit
   the new one does not, and applies the rest in file order.
 - Reading a setting checks, in order: the environment (only after
   `allow_environment_variables()` and only for uppercase names, with its
-  `prefix` prepended to the name), values from the loaded files, the
-  `defaults` passed to `load`, the default from `Config.define`, and finally
-  raises `AttributeError`.
+  `prefix` prepended to the name, then to each of its aliases in the order
+  they were registered), values from the loaded files, the `defaults` passed
+  to `load`, the default from `Config.define`, and finally raises
+  `AttributeError`.
 - `Config.alias(old_name, new_name)` makes `old_name` a deprecated alias:
   reading or setting it logs a warning on the `derpconf.config` logger and
   redirects to `new_name`. Aliases of aliases resolve to the final name.
+  `__getattribute__` looks an alias up in the environment through its final
+  name, so both names see the same variables, even for a value the instance
+  stored under the alias before it was registered; a value taken from an
+  alias's variable logs a warning too. Only uppercase names are looked up,
+  the final name and each alias alike.
   `Config.alias` raises `ValueError` for an alias that would resolve to
   itself, directly or through a chain, so code that follows aliases never
   has to guard against a cycle.
@@ -237,8 +243,8 @@ Makefile                 ← setup, test, lint, pre-commit
   defined, which is how a setting required with `validates_presence_of` can
   come from the environment alone. `allow_environment_variables` called with
   `defined_only=True` narrows the lookup to names in `class_defaults` or
-  `class_aliased_items`, so the target of an alias has to be defined to be
-  read under its own name.
+  `class_aliases`, the final names aliases point to. An alias is read
+  through its final name, so it follows the same rule.
 - `verify_config` prints the default used for each missing key, and
   `generate_config` prints every default. Never put real secrets in
   `Config.define` defaults, fixtures or examples.
