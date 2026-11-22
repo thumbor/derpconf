@@ -67,6 +67,9 @@ _ENVIRONMENT_PARSERS = {
 }
 
 
+_NOT_IN_ENVIRONMENT = object()
+
+
 class Config:
     class_defaults = {}
     class_group_items = defaultdict(list)
@@ -353,30 +356,68 @@ class Config:
             return super().__getattribute__(name)
 
         # isupper() keeps out "_", which shells export to every child process.
-        if (
-            name.isupper()
-            and self._allow_environment_variables
-            and not hasattr(type(self), name)
-            and (
-                not type(self)._environment_variables_defined_only
-                or type(self)._is_declared(name)
-            )
-        ):
-            prefix = self._environment_variables_prefix
-            value = os.environ.get(prefix + name, None)
+        if name.isupper() and self._allow_environment_variables:
+            value = type(self)._read_environment(name)
 
-            if value is not None:
-                return type(self)._parse_environment_value(name, prefix + name, value)
+            if value is not _NOT_IN_ENVIRONMENT:
+                return value
 
         return super().__getattribute__(name)
 
     @classmethod
+    def _read_environment(cls, name):
+        # Through the final name, so both names of an alias read the same
+        # variables, even one the instance stored before the alias existed.
+        setting = cls._resolve_alias(name)
+
+        if not setting.isupper() or hasattr(cls, name) or hasattr(cls, setting):
+            return _NOT_IN_ENVIRONMENT
+
+        if cls._environment_variables_defined_only and not cls._is_declared(setting):
+            return _NOT_IN_ENVIRONMENT
+
+        prefix = cls._environment_variables_prefix
+
+        for source in cls._environment_names(setting):
+            value = os.environ.get(prefix + source, None)
+
+            if value is None:
+                continue
+
+            if name != setting:
+                logger.warning(
+                    "Option %s is marked as deprecated please use %s instead.",
+                    name,
+                    cls.class_aliased_items[name],
+                )
+
+            if source != setting:
+                logger.warning(
+                    "Environment variable %s is marked as deprecated "
+                    "please use %s instead.",
+                    prefix + source,
+                    prefix + setting,
+                )
+
+            return cls._parse_environment_value(setting, prefix + source, value)
+
+        return _NOT_IN_ENVIRONMENT
+
+    @classmethod
     def _is_declared(cls, name):
-        return name in cls.class_defaults or name in cls.class_aliased_items
+        return name in cls.class_defaults or name in cls.class_aliases
+
+    @classmethod
+    def _environment_names(cls, name):
+        yield name
+
+        if name in cls.class_aliases:
+            for alias in cls.class_aliased_items:
+                if alias.isupper() and cls._resolve_alias(alias) == name:
+                    yield alias
 
     @classmethod
     def _parse_environment_value(cls, name, env_name, value):
-        name = cls._resolve_alias(name)
         default_type = type(cls.class_defaults.get(name))
         parser = _ENVIRONMENT_PARSERS.get(default_type)
 

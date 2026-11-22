@@ -201,10 +201,10 @@ from the environment alone. To read only the names you declared, pass
 Config.allow_environment_variables(prefix="MYAPP_", defined_only=True)
 ```
 
-Now a variable is used only for a setting declared with `Config.define` or
-an alias registered with `Config.alias`, and every other one is ignored,
-whatever its prefix. Like the prefix, the choice applies to every `Config` in
-the process and is dropped by a later call that does not repeat it.
+Now a variable is used only for a setting declared with `Config.define` or a
+name given to `Config.alias`, and every other one is ignored, whatever its
+prefix. Like the prefix, the choice applies to every `Config` in the process
+and is dropped by a later call that does not repeat it.
 
 ## Reloading
 
@@ -231,6 +231,12 @@ Reading or assigning `OLD_STORAGE`, in code or in a configuration file, logs a
 deprecation warning on the `derpconf.config` logger and uses `STORAGE`
 instead. The generated sample lists `OLD_STORAGE` among the aliases of
 `STORAGE`.
+
+With environment variables allowed, both names read the same variables: the
+one named after `STORAGE` and, when that one is not set, the one named after
+`OLD_STORAGE`, which also logs a deprecation warning. A setting with several
+aliases tries them in the order they were registered, and a `prefix` applies
+to every name.
 
 `Config.alias` raises `ValueError` for an alias that would lead back to
 itself, directly or through other aliases.

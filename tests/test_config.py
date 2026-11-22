@@ -676,6 +676,128 @@ class TestEnvironmentVariables:
         Config.load(fix("missing.conf")).validates_presence_of("SECRET_KEY")
 
 
+class TestEnvironmentVariablesThroughAliases:
+    @pytest.fixture
+    def config(self):
+        Config.define("PORT", 8888, "Port the server listens on")
+        Config.alias("OLD_PORT", "PORT")
+        Config.allow_environment_variables()
+
+        return Config.load(fix("sample.conf"))
+
+    @pytest.mark.parametrize(
+        ("variables", "expected"),
+        [
+            ({}, 8888),
+            ({"OLD_PORT": "9100"}, 9100),
+            ({"PORT": "9200"}, 9200),
+            ({"OLD_PORT": "9100", "PORT": "9200"}, 9200),
+        ],
+    )
+    def test_both_names_read_the_same_value(
+        self, config, monkeypatch, variables, expected
+    ):
+        for name, value in variables.items():
+            monkeypatch.setenv(name, value)
+
+        assert config.PORT == expected
+        assert config.OLD_PORT == expected
+        assert config.items["PORT"] == expected
+
+    def test_variable_of_alias_logs_deprecation(self, config, monkeypatch, caplog):
+        monkeypatch.setenv("OLD_PORT", "9100")
+
+        assert config.PORT == 9100
+        assert caplog.messages == [
+            "Environment variable OLD_PORT is marked as deprecated "
+            "please use PORT instead."
+        ]
+
+    def test_reading_alias_from_environment_logs_deprecation(
+        self, config, monkeypatch, caplog
+    ):
+        monkeypatch.setenv("PORT", "9100")
+
+        assert config.OLD_PORT == 9100
+        assert caplog.messages == [
+            "Option OLD_PORT is marked as deprecated please use PORT instead."
+        ]
+
+    def test_name_stored_before_it_became_an_alias_reads_the_environment(
+        self, monkeypatch
+    ):
+        Config.define("PORT", 8888, "Port the server listens on")
+        config = Config(OLD_PORT=8000)
+        Config.alias("OLD_PORT", "PORT")
+        Config.allow_environment_variables()
+        monkeypatch.setenv("OLD_PORT", "9100")
+
+        assert config.OLD_PORT == 9100
+        assert config.PORT == 9100
+
+    def test_variable_of_alias_overrides_value_from_file(self, tmp_path, monkeypatch):
+        path = tmp_path / "port.conf"
+        path.write_text("PORT = 8000\n", encoding="utf-8")
+        Config.define("PORT", 8888, "Port the server listens on")
+        Config.alias("OLD_PORT", "PORT")
+        Config.allow_environment_variables()
+        monkeypatch.setenv("OLD_PORT", "9100")
+
+        assert Config.load(path).PORT == 9100
+
+    def test_prefix_applies_to_alias(self, config, monkeypatch):
+        Config.allow_environment_variables(prefix="MYAPP_")
+        monkeypatch.setenv("OLD_PORT", "9000")
+        monkeypatch.setenv("MYAPP_OLD_PORT", "9100")
+
+        assert config.PORT == 9100
+
+    def test_first_registered_alias_wins(self, config, monkeypatch):
+        Config.alias("OLDER_PORT", "PORT")
+        monkeypatch.setenv("OLDER_PORT", "9300")
+        monkeypatch.setenv("OLD_PORT", "9100")
+
+        assert config.PORT == 9100
+
+    def test_chain_of_aliases_is_read(self, monkeypatch):
+        Config.define("STORAGE", "file", "Storage backend")
+        Config.alias("OLDEST_STORAGE", "OLD_STORAGE")
+        Config.alias("OLD_STORAGE", "STORAGE")
+        Config.allow_environment_variables()
+        monkeypatch.setenv("OLDEST_STORAGE", "redis")
+        config = Config()
+
+        assert config.STORAGE == "redis"
+        assert config.OLD_STORAGE == "redis"
+        assert config.OLDEST_STORAGE == "redis"
+
+    def test_lowercase_names_stay_out_of_the_environment(self, monkeypatch):
+        Config.define("PORT", 8888, "Port the server listens on")
+        Config.alias("old_port", "PORT")
+        Config.alias("FILE", "config_file")
+        Config.allow_environment_variables()
+        monkeypatch.setenv("old_port", "9100")
+        monkeypatch.setenv("config_file", "/etc/other.conf")
+        config = Config()
+
+        assert config.PORT == 8888
+        assert config.old_port == 8888
+        assert config.get("FILE") is None
+
+    def test_invalid_variable_of_alias_is_named(self, config, monkeypatch):
+        monkeypatch.setenv("OLD_PORT", "not a port")
+
+        with pytest.raises(ConfigurationError, match="OLD_PORT is not a valid int"):
+            config.get("PORT")
+
+    def test_validates_presence_of_accepts_variable_of_alias(self, monkeypatch):
+        Config.alias("OLD_SECRET_KEY", "SECRET_KEY")
+        Config.allow_environment_variables()
+        monkeypatch.setenv("OLD_SECRET_KEY", "secret")
+
+        Config.load(fix("missing.conf")).validates_presence_of("SECRET_KEY")
+
+
 class TestEnvironmentVariablesOnlyReachSettings:
     @pytest.mark.parametrize("prefix", ["", "MYAPP_"])
     def test_config_file_does_not_redirect_reload(self, monkeypatch, tmp_path, prefix):
@@ -761,6 +883,15 @@ class TestEnvironmentVariablesDefinedOnly:
         monkeypatch.setenv("OLD_PORT", "9200")
 
         assert config.OLD_PORT == 9200
+
+    def test_final_name_of_alias_is_read_without_definition(self, monkeypatch):
+        Config.alias("OLD_NAME", "NAME")
+        Config.allow_environment_variables(defined_only=True)
+        monkeypatch.setenv("NAME", "from environment")
+        config = Config()
+
+        assert config.NAME == "from environment"
+        assert config.OLD_NAME == "from environment"
 
     def test_undefined_name_is_not_read(self, config, monkeypatch):
         Config.allow_environment_variables(defined_only=True)
