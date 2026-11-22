@@ -12,7 +12,7 @@ license = "MIT"
 authors = [{ name = "globo.com", email = "timehome@corp.globo.com" }]
 keywords = ["configuration"]
 classifiers = [
-    "Development Status :: 4 - Beta",
+    "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Natural Language :: English",
     "Operating System :: MacOS",
